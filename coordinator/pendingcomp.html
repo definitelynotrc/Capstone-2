@@ -34,6 +34,9 @@
       };
     </script>
     <style>
+      .card {
+        border: 1px solid #1e1e1e;
+      }
       .sidebar {
         transform: translateX(-100%);
         transition: transform 0.3s ease-in-out;
@@ -348,7 +351,7 @@
                 <path d="M22 13a18.15 18.15 0 0 1-20 0" />
                 <rect width="20" height="14" x="2" y="6" rx="2" />
               </svg>
-              <span class="ms-3">Job Posting</span>
+              <span class="ms-3">Jobs</span>
             </a>
           </li>
           <li>
@@ -390,7 +393,7 @@
                 <circle cx="9" cy="7" r="4" />
                 <polyline points="16 11 18 13 22 9" />
               </svg>
-              <span class="ms-3">Trainees</span>
+              <span class="ms-3">Deployed</span>
             </a>
           </li>
           <li>
@@ -405,15 +408,14 @@
                 stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                class="lucide lucide-clipboard-check"
+                class="lucide lucide-rectangle-ellipsis"
               >
-                <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
-                <path
-                  d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"
-                />
-                <path d="m9 14 2 2 4-4" />
+                <rect width="20" height="12" x="2" y="6" rx="2" />
+                <path d="M12 12h.01" />
+                <path d="M17 12h.01" />
+                <path d="M7 12h.01" />
               </svg>
-              <span class="ms-3">Published Jobs</span>
+              <span class="ms-3">Pending </span>
             </a>
           </li>
         </ul>
@@ -469,110 +471,168 @@
             <path d="m21 21-4.3-4.3" />
           </svg>
         </div>
+
         <div
           class="w-full grid items-center justify-evenly mx-auto mt-5 grid-cols-4 gap-5"
         >
-          <div
-            class="w-full flex flex-col border border-black p-2 gap-4 rounded-md"
-          >
-            <div class="w-full flex flex-row gap-1">
-              <div>
-                <img
-                  src="../img/Group 136.png"
-                  alt=""
-                  class="w-[50px] h-[50px]"
-                />
+          <div class="w-full min-h-44 rounded-lg card flex flex-col gap-1 p-1">
+            <div
+              id=""
+              class="colorCard flex flex-col gap-1 card p-2 rounded-md"
+            >
+              <div class="flex flex-row items-center justify-center">
+                <div class="flex flex-col w-[80%]">
+                  <h1 class="text-lg font-semibold lg:text-xl">LinkedIn</h1>
+                </div>
+                <div class="w-[20%] flex items-center">
+                  <img
+                    src="../img/LinkedIn_logo_initials.png"
+                    alt=""
+                    class="w-[40px] h-[40px] rounded-full"
+                  />
+                </div>
               </div>
-              <div>
-                <h1 class="font-semibold text-lg">Clarence Ariel V. Pamilar</h1>
-                <p class="text-[#7F7575] text-sm">SUM2021-01815</p>
-                <p class="text-[#7F7575] text-sm">BSIT-4G</p>
+
+              <div class="">
+                <ul class="flex flex-col gap-1">
+                  <li class="flex flex-row items-center gap-1">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.25"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      class="lucide lucide-user"
+                    >
+                      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                      <circle cx="12" cy="7" r="4" />
+                    </svg>
+                    <span class="font-light text-[10px] lg:text-xs"
+                      >Clarence Pamilar</span
+                    >
+                  </li>
+                  <li class="flex flex-row items-center gap-1">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 12 12"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M10 5C10 8 6 11 6 11C6 11 2 8 2 5C2 3.93913 2.42143 2.92172 3.17157 2.17157C3.92172 1.42143 4.93913 1 6 1C7.06087 1 8.07828 1.42143 8.82843 2.17157C9.57857 2.92172 10 3.93913 10 5Z"
+                        stroke="black"
+                        stroke-width="0.666667"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                      <path
+                        d="M6 6.5C6.82843 6.5 7.5 5.82843 7.5 5C7.5 4.17157 6.82843 3.5 6 3.5C5.17157 3.5 4.5 4.17157 4.5 5C4.5 5.82843 5.17157 6.5 6 6.5Z"
+                        stroke="black"
+                        stroke-width="0.666667"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                    <span class="font-light text-[10px] lg:text-xs"
+                      >Cabanatuan City</span
+                    >
+                  </li>
+                </ul>
               </div>
             </div>
-            <div class="flex flex-wrap w-full gap-2">
-              <div
-                class="bg-button h-6 rounded flex items-center justify-center px-2"
+            <div class="mt-2 mb-2">
+              <a
+                href=""
+                download=""
+                class="bg-black py-1 px-3 text-xs rounded-sm font-semibold text-white"
+                >View MoA</a
               >
-                <p class="text-center text-white text-[10px]">Front-End</p>
-              </div>
-              <div
-                class="bg-button h-6 rounded flex items-center justify-center px-2"
-              >
-                <p class="text-center text-white text-[10px]">Back-End</p>
-              </div>
-              <div
-                class="bg-button h-6 rounded flex items-center justify-center px-2"
-              >
-                <p class="text-center text-white text-[10px]">MySQL</p>
-              </div>
-              <div
-                class="bg-button h-6 rounded col-span-2 flex items-center justify-center px-2"
-              >
-                <p class="text-center text-white text-[10px]">Communication</p>
-              </div>
-              <div
-                class="bg-button h-6 rounded flex items-center justify-center px-2"
-              >
-                <p class="text-center text-white text-[10px]">Frameworks</p>
-              </div>
-              <div
-                class="bg-button h-6 rounded flex items-center justify-center px-2"
-              >
-                <p class="text-center text-white text-[10px]">Fast Learner</p>
-              </div>
-              <div
-                class="bg-button h-6 rounded flex items-center justify-center px-2"
-              >
-                <p class="text-center text-white text-[10px]">Node.js</p>
-              </div>
             </div>
-            <div class="flex flex-row justify-between">
+            <div class="flex justify-between">
               <button
-                class="change-photo px-2 py-1 text-sm rounded-sm font-medium"
+                class="text-xs change-photo py-1 px-3 rounded-md font-semibold"
+                onclick=""
               >
-                View profile</button
-              ><button
-                class="remove-photo px-2 py-1 rounded-sm text-sm font-medium"
+                Accept
+              </button>
+              <button
+                class="text-xs remove-photo py-1 px-3 rounded-md font-semibold"
+                onclick=""
               >
-                Accept student
+                Reject
               </button>
             </div>
           </div>
         </div>
       </div>
-    </main>
-    <script>
-      const sidebar = document.getElementById("default-sidebar");
-      const sidebarToggle = document.getElementById("sidebarToggle");
-      const overlay = document.getElementById("overlay");
+      <script>
+        const sidebar = document.getElementById("default-sidebar");
+        const sidebarToggle = document.getElementById("sidebarToggle");
+        const overlay = document.getElementById("overlay");
 
-      sidebarToggle.addEventListener("click", () => {
-        sidebar.classList.toggle("show");
-        overlay.classList.toggle("show");
-      });
+        sidebarToggle.addEventListener("click", () => {
+          sidebar.classList.toggle("show");
+          overlay.classList.toggle("show");
+        });
 
-      overlay.addEventListener("click", () => {
-        sidebar.classList.remove("show");
-        overlay.classList.remove("show");
-      });
-
-      document.addEventListener("click", (event) => {
-        if (
-          !sidebar.contains(event.target) &&
-          !sidebarToggle.contains(event.target) &&
-          sidebar.classList.contains("show")
-        ) {
+        overlay.addEventListener("click", () => {
           sidebar.classList.remove("show");
           overlay.classList.remove("show");
-        }
-      });
-
-      document
-        .querySelector(".custom-profile")
-        .addEventListener("click", function () {
-          const dropdownMenu = document.getElementById("custom-dropdownMenu");
-          dropdownMenu.classList.toggle("custom-hidden");
         });
-    </script>
+
+        document.addEventListener("click", (event) => {
+          if (
+            !sidebar.contains(event.target) &&
+            !sidebarToggle.contains(event.target) &&
+            sidebar.classList.contains("show")
+          ) {
+            sidebar.classList.remove("show");
+            overlay.classList.remove("show");
+          }
+        });
+        const colors = [
+          "#FFE1CC",
+          "#D4F6ED",
+          "#E3DBFA",
+          "#DFF3FE",
+          "#FBE2F4",
+          "#ECEFF4",
+          "#C7C8CC",
+          "#FBC0C0",
+          "#F4E87A",
+          "#AEA8F8",
+          "#F4E884",
+          "#E7F0DC",
+          "#F0EBE3",
+          "#FFEFEF",
+          "#9CAFAA",
+        ];
+
+        function getRandomColor() {
+          const randomIndex = Math.floor(Math.random() * colors.length);
+          return colors[randomIndex];
+        }
+
+        const cards = document.getElementsByClassName("colorCard");
+
+        for (let i = 0; i < cards.length; i++) {
+          cards[i].style.backgroundColor = getRandomColor();
+        }
+        document
+          .querySelector(".custom-profile")
+          .addEventListener("click", function () {
+            const dropdownMenu = document.getElementById("custom-dropdownMenu");
+            dropdownMenu.classList.toggle("custom-hidden");
+          });
+        function goToDeet(event) {
+          window.location.href = "jobdetails.html";
+        }
+      </script>
+    </main>
   </body>
 </html>

@@ -480,7 +480,7 @@
                 <img
                   src="../img/Group 136.png"
                   alt=""
-                  class="w-[50px] h-[50px]"
+                  class="w-[70px] h-[70px]"
                 />
               </div>
               <div>
@@ -504,5 +504,38 @@
         </div>
       </div>
     </main>
+    <script>
+      const sidebar = document.getElementById("default-sidebar");
+      const sidebarToggle = document.getElementById("sidebarToggle");
+      const overlay = document.getElementById("overlay");
+
+      sidebarToggle.addEventListener("click", () => {
+        sidebar.classList.toggle("show");
+        overlay.classList.toggle("show");
+      });
+
+      overlay.addEventListener("click", () => {
+        sidebar.classList.remove("show");
+        overlay.classList.remove("show");
+      });
+
+      document.addEventListener("click", (event) => {
+        if (
+          !sidebar.contains(event.target) &&
+          !sidebarToggle.contains(event.target) &&
+          sidebar.classList.contains("show")
+        ) {
+          sidebar.classList.remove("show");
+          overlay.classList.remove("show");
+        }
+      });
+
+      document
+        .querySelector(".custom-profile")
+        .addEventListener("click", function () {
+          const dropdownMenu = document.getElementById("custom-dropdownMenu");
+          dropdownMenu.classList.toggle("custom-hidden");
+        });
+    </script>
   </body>
 </html>
