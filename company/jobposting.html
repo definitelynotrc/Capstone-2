@@ -182,7 +182,7 @@
     <title>InterLink</title>
   </head>
   <body>
-    <nav class="z-100 w-full border flex flex-row justify-between px-4 py-4">
+    <nav class="z-100 w-full border-b flex flex-row justify-between px-4 py-4">
       <div>
         <svg
           id="sidebarToggle"
@@ -203,27 +203,42 @@
         </svg>
       </div>
       <div class="flex flex-row gap-5">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          class="lucide lucide-bell"
-        >
-          <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-          <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-        </svg>
+        <div class="relative">
+          <svg
+            id="notificationIcon"
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="lucide lucide-bell cursor-pointer"
+          >
+            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+            <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+          </svg>
+          <div
+            id="notificationDropdown"
+            class="hidden absolute top-8 right-0 mt-2 w-48 bg-white border rounded-md shadow-lg"
+          >
+            <a href="#" class="block py-2 text-gray-700 hover:bg-gray-100"
+              ><div class="border p-1 w-full flex flex-col">
+                <h1>Title</h1>
+                <p>description</p>
+                <p>time</p>
+              </div></a
+            >
+          </div>
+        </div>
         <div
           class="relative custom-profile flex flex-row items-center cursor-pointer"
         >
           <div class="w-[25px] h-[24px] rounded-full">
             <img
-              src="../img/Group 136.png"
+              src="./img/Group 136.png"
               alt="Profile"
               class="w-full h-full object-cover"
             />
@@ -672,5 +687,6 @@
           dropdownMenu.classList.toggle("custom-hidden");
         });
     </script>
+    <script src="../notif.js"></script>
   </body>
 </html>
