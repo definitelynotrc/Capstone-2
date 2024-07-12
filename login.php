@@ -1,3 +1,67 @@
+<?php
+session_start();
+include 'db.php';
+
+
+function sanitize_input($data) {
+    return htmlspecialchars(stripslashes(trim($data)));
+}
+
+
+$email = sanitize_input($_POST['email']);
+$password = sanitize_input($_POST['pw']);
+
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    echo "Invalid email format";
+    exit();
+}
+
+$stmt = $conn->prepare("SELECT u.id, u.firstname, u.middlename, u.lastname, u.email, s.password AS student_password, c.password AS company_password, co.password AS coordinator_password
+                        FROM users u
+                        LEFT JOIN students s ON u.id = s.user_id
+                        LEFT JOIN companies c ON u.id = c.user_id
+                        LEFT JOIN coordinators co ON u.id = co.user_id
+                        WHERE u.email = ?");
+$stmt->bind_param("s", $email);
+$stmt->execute();
+$stmt->store_result();
+
+if ($stmt->num_rows > 0) {
+    $stmt->bind_result($user_id, $firstname, $middlename, $lastname, $email, $student_password, $company_password, $coordinator_password);
+    $stmt->fetch();
+    
+    if (($student_password && password_verify($password, $student_password)) ||
+        ($company_password && password_verify($password, $company_password)) ||
+        ($coordinator_password && password_verify($password, $coordinator_password))) {
+        
+        $_SESSION['user_id'] = $user_id;
+        $_SESSION['firstname'] = $firstname;
+        $_SESSION['email'] = $email;
+
+        // Redirect based on user type
+        if ($student_password && password_verify($password, $student_password)) {
+            $_SESSION['user_type'] = 'student';
+            header("Location: student_dashboard.php");
+        } elseif ($company_password && password_verify($password, $company_password)) {
+            $_SESSION['user_type'] = 'company';
+            header("Location: company_dashboard.php");
+        } elseif ($coordinator_password && password_verify($password, $coordinator_password)) {
+            $_SESSION['user_type'] = 'coordinator';
+            header("Location: coordinator_dashboard.php");
+        }
+        exit();
+    } else {
+        echo "Invalid email or password";
+    }
+} else {
+    echo "Invalid email or password";
+}
+
+$stmt->close();
+$conn->close();
+?>
+
+
 <!DOCTYPE html>
 <html lang="en">
   <head>

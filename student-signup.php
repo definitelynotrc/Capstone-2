@@ -1,3 +1,69 @@
+<?php
+session_start();
+include 'db.php';
+
+function sanitize_input($data) {
+    return htmlspecialchars(stripslashes(trim($data)));
+}
+
+$firstname = sanitize_input($_POST['firstname']);
+$middlename = sanitize_input($_POST['middlename']);
+$lastname = sanitize_input($_POST['lastname']);
+$email = sanitize_input($_POST['email']);
+$studNumber = sanitize_input($_POST['studNumber']);
+$DoB = sanitize_input($_POST['DoB']);
+$section = sanitize_input($_POST['section']);
+$course = sanitize_input($_POST['course']);
+$password = $_POST['pw'];
+
+$errors = [];
+if (!preg_match("/^[a-zA-Z'-]+$/", $firstname)) {
+    $errors[] = "Invalid first name";
+}
+if (!empty($middlename) && !preg_match("/^[a-zA-Z'-]+$/", $middlename)) {
+    $errors[] = "Invalid middle name";
+}
+if (!preg_match("/^[a-zA-Z'-]+$/", $lastname)) {
+    $errors[] = "Invalid last name";
+}
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    $errors[] = "Invalid email format";
+}
+if (!preg_match("/^[0-9]{8,10}$/", $studNumber)) {
+    $errors[] = "Invalid student number";
+}
+if (!preg_match("/^[a-zA-Z0-9 ]+$/", $course)) {
+    $errors[] = "Invalid course";
+}
+if (strlen($password) < 8) {
+    $errors[] = "Password must be at least 8 characters long";
+}
+
+if (empty($errors)) {
+    $hashed_password = password_hash($password, PASSWORD_BCRYPT);
+
+    $stmt = $conn->prepare("INSERT INTO users (firstname, middlename, lastname, email) VALUES (?, ?, ?, ?)");
+    $stmt->bind_param("ssss", $firstname, $middlename, $lastname, $email);
+
+    if ($stmt->execute()) {
+        $user_id = $stmt->insert_id;
+
+        $stmt_student = $conn->prepare("INSERT INTO students (user_id, student_number, date_of_birth, section, course, password) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt_student->bind_param("isssss", $user_id, $studNumber, $DoB, $section, $course, $hashed_password);
+      } else {
+        echo "Error: " . $stmt->error;
+    }
+
+    $stmt->close();
+} else {
+    foreach ($errors as $error) {
+        echo $error . "<br>";
+    }
+}
+
+$conn->close();
+?>
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -134,7 +200,7 @@
           </p>
         </div>
 
-        <form action="" class="flex flex-col items-center w-[90%] mx-auto">
+        <form action="" method="post" class="flex flex-col items-center w-[90%] mx-auto">
           <div class="flex flex-col gap-4 mt-2 items-center">
             <div class="flex flex-row w-full gap-6">
               <div class="w-[160px] h-[30px] flex flex-col lg:w-[220px]">
@@ -312,6 +378,7 @@
           </div>
         </form>
       </main>
+    
       <script src="burgermenu.js"></script>
     </body>
   </head>
