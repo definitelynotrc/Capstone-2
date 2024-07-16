@@ -7,6 +7,8 @@ function sanitize_input($data) {
     return htmlspecialchars(stripslashes(trim($data)));
 }
 
+if ($_SERVER["REQUEST_METHOD"] != "POST") {
+
 
 $email = sanitize_input($_POST['email']);
 $password = sanitize_input($_POST['pw']);
@@ -17,10 +19,10 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 }
 
 $stmt = $conn->prepare("SELECT u.id, u.firstname, u.middlename, u.lastname, u.email, s.password AS student_password, c.password AS company_password, co.password AS coordinator_password
-                        FROM users u
-                        LEFT JOIN students s ON u.id = s.user_id
-                        LEFT JOIN companies c ON u.id = c.user_id
-                        LEFT JOIN coordinators co ON u.id = co.user_id
+                        FROM user u
+                        LEFT JOIN student s ON u.id = s.user_id
+                        LEFT JOIN company c ON u.id = c.user_id
+                        LEFT JOIN coordinator co ON u.id = co.user_id
                         WHERE u.email = ?");
 $stmt->bind_param("s", $email);
 $stmt->execute();
@@ -38,7 +40,7 @@ if ($stmt->num_rows > 0) {
         $_SESSION['firstname'] = $firstname;
         $_SESSION['email'] = $email;
 
-        // Redirect based on user type
+        
         if ($student_password && password_verify($password, $student_password)) {
             $_SESSION['user_type'] = 'student';
             header("Location: student_dashboard.php");
@@ -59,6 +61,7 @@ if ($stmt->num_rows > 0) {
 
 $stmt->close();
 $conn->close();
+}
 ?>
 
 
@@ -197,7 +200,7 @@ $conn->close();
         <div class="hidden lg:block lg:w-[564.85px] h-[653.01px]">
           <img src="./img/Group 233.png" alt="" class="w-full h-full" />
         </div>
-        <form action="" class="flex flex-col items-center lg:w-[30%] gap-4">
+        <form action="" method="post" class="flex flex-col items-center lg:w-[30%] gap-4">
           <h1 class="text-2xl font-bold lg:text-4xl">Welcome Back!</h1>
           <div class="w-[200px] h-[40px] flex flex-col lg:w-full lg:h-[55px]">
             <label for="" class="text-sm font-medium">Email address</label
@@ -215,7 +218,7 @@ $conn->close();
               class="custom-border w-full h-full"
             />
           </div>
-          <button type="submit">Sign Up></button>
+          <button type="submit">Log In</button>
           <div class="mt-4 flex flex-col items-center gap-2">
             <span class="text-[12px]">Or sign in using</span>
 

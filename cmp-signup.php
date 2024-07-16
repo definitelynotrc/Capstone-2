@@ -1,3 +1,108 @@
+<?php
+session_start();
+include 'db.php';
+
+
+function sanitize_input($data) {
+    return htmlspecialchars(stripslashes(trim($data)));
+}
+
+
+
+$errors = [];
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+$firstname = sanitize_input($_POST['fName']);
+$middlename = sanitize_input($_POST['mName']);
+$lastname = sanitize_input($_POST['lName']);
+$companyname = sanitize_input($_POST['cmpname']);
+$email = sanitize_input($_POST['email']);
+$password = isset($_POST['pw']) ? $_POST['pw'] : '';
+$website = isset($_POST['website']) ? $_POST['website'] : '';
+
+
+
+$target_dir = "uploads/";
+$moa  = $target_dir . basename($_FILES["file"]["name"]);
+$uploadOk = 1;
+$imageFileType = strtolower(pathinfo($moa, PATHINFO_EXTENSION));
+
+
+// if (file_exists($target_file)) {
+//     echo "Sorry, file already exists.";
+//     $uploadOk = 0;
+// }
+
+
+// if ($_FILES["file"]["size"] > 5000000) {
+//     echo "Sorry, your file is too large.";
+//     $uploadOk = 0;
+// }
+
+
+// if ($imageFileType != "pdf" && $imageFileType != "doc" && $imageFileType != "docx") {
+//     echo "Sorry, only PDF, DOC & DOCX files are allowed.";
+//     $uploadOk = 0;
+// }
+
+
+// if ($uploadOk == 0) {
+//     echo "Sorry, your file was not uploaded.";
+//     exit();
+
+// } else {
+//     if (!move_uploaded_file($_FILES["file"]["tmp_name"], $target_file)) {
+//         echo "Sorry, there was an error uploading your file.";
+//         exit();
+//     }
+// }
+
+ if (empty($errors)) {
+        $hashed_password = password_hash($password, PASSWORD_BCRYPT);
+
+        $conn->begin_transaction();
+        try {
+      
+            $stmt = $conn->prepare("INSERT INTO user (firstName, middleName, lastName, EmailAddress, password) VALUES (?, ?, ?, ?, ?)");
+            $stmt->bind_param("sssss", $firstname, $middlename, $lastname, $email,  $hashed_password);
+
+            if ($stmt->execute()) {
+                $user_id = $stmt->insert_id;
+
+            
+                $stmt_student = $conn->prepare("INSERT INTO company (userId, CompanyName, Website , Moa ) VALUES (?, ?, ?, ?)");
+                $stmt_student->bind_param("isss", $user_id, $companyname, $website, $moa);
+
+                if ($stmt_student->execute()) {
+                    $conn->commit();
+                    echo "Registration successful!";
+                } else {
+                    $conn->rollback();
+                    echo "Error: " . $stmt_student->error;
+                }
+
+                $stmt_student->close();
+            } else {
+                $conn->rollback();
+                echo "Error: " . $stmt->error;
+            }
+
+            $stmt->close();
+        } catch (Exception $e) {
+            $conn->rollback();
+            echo "Error: " . $e->getMessage();
+        }
+
+        $conn->close();
+    } else {
+        foreach ($errors as $error) {
+            echo $error . "<br>";
+        }
+    }
+  }
+?>
+
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -141,7 +246,7 @@
           </p>
         </div>
 
-        <form action="" class="flex flex-col items-center w-[90%] mx-auto">
+        <form action="" method="post" enctype="multipart/form-data" class="flex flex-col items-center w-[90%] mx-auto">
           <div class="flex flex-col gap-4 mt-2 items-center">
             <div class="flex flex-row w-full gap-6">
               <div class="w-[160px] h-[30px] flex flex-col lg:w-[220px]">
@@ -187,7 +292,7 @@
             </div>
             <div class="w-[345px] h-[40px] flex flex-col lg:w-[465px]">
               <label for="" class="text-sm font-medium">Password </label>
-              <input type="password" name="pw" id="" class="custom-border" />
+              <input type="password" name="pw" id="pw" class="custom-border" />
             </div>
 
             <div class="relative w-64">
@@ -195,6 +300,7 @@
               <input
                 type="file"
                 id="file"
+                name="file"
                 class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               />
               <label
