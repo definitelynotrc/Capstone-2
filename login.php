@@ -2,65 +2,61 @@
 session_start();
 include 'db.php';
 
-
 function sanitize_input($data) {
     return htmlspecialchars(stripslashes(trim($data)));
 }
 
-if ($_SERVER["REQUEST_METHOD"] != "POST") {
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
+    $email = sanitize_input($_POST['email']);
+    $password = sanitize_input($_POST['pw']);
 
-$email = sanitize_input($_POST['email']);
-$password = sanitize_input($_POST['pw']);
-
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    echo "Invalid email format";
-    exit();
-}
-
-$stmt = $conn->prepare("SELECT u.id, u.firstname, u.middlename, u.lastname, u.email, s.password AS student_password, c.password AS company_password, co.password AS coordinator_password
-                        FROM user u
-                        LEFT JOIN student s ON u.id = s.user_id
-                        LEFT JOIN company c ON u.id = c.user_id
-                        LEFT JOIN coordinator co ON u.id = co.user_id
-                        WHERE u.email = ?");
-$stmt->bind_param("s", $email);
-$stmt->execute();
-$stmt->store_result();
-
-if ($stmt->num_rows > 0) {
-    $stmt->bind_result($user_id, $firstname, $middlename, $lastname, $email, $student_password, $company_password, $coordinator_password);
-    $stmt->fetch();
-    
-    if (($student_password && password_verify($password, $student_password)) ||
-        ($company_password && password_verify($password, $company_password)) ||
-        ($coordinator_password && password_verify($password, $coordinator_password))) {
-        
-        $_SESSION['user_id'] = $user_id;
-        $_SESSION['firstname'] = $firstname;
-        $_SESSION['email'] = $email;
-
-        
-        if ($student_password && password_verify($password, $student_password)) {
-            $_SESSION['user_type'] = 'student';
-            header("Location: student_dashboard.php");
-        } elseif ($company_password && password_verify($password, $company_password)) {
-            $_SESSION['user_type'] = 'company';
-            header("Location: company_dashboard.php");
-        } elseif ($coordinator_password && password_verify($password, $coordinator_password)) {
-            $_SESSION['user_type'] = 'coordinator';
-            header("Location: coordinator_dashboard.php");
-        }
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        echo "Invalid email format";
         exit();
+    }
+
+    // Fetch user details along with their role
+    $stmt = $conn->prepare("SELECT u.UserId, u.firstName, u.middleName, u.lastName, u.emailAddress, u.password, 
+                                   (SELECT 'student' FROM student s WHERE s.UserId = u.UserId) AS user_role_student,
+                                   (SELECT 'company' FROM company c WHERE c.UserId = u.UserId) AS user_role_company,
+                                   (SELECT 'coordinator' FROM coordinator co WHERE co.UserId = u.UserId) AS user_role_coordinator
+                            FROM user u
+                            WHERE u.emailAddress = ?");
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $stmt->store_result();
+
+    if ($stmt->num_rows > 0) {
+        $stmt->bind_result($user_id, $firstname, $middlename, $lastname, $email, $hashed_password, $role_student, $role_company, $role_coordinator);
+        $stmt->fetch();
+
+        if (password_verify($password, $hashed_password)) {
+            $_SESSION['user_id'] = $user_id;
+            $_SESSION['firstname'] = $firstname;
+            $_SESSION['email'] = $email;
+
+            if ($role_student === 'student') {
+                $_SESSION['user_type'] = 'student';
+                header("Location: studentjobs.php");
+            } elseif ($role_company === 'company') {
+                $_SESSION['user_type'] = 'company';
+                header("Location: ./company/dashboard.php");
+            } elseif ($role_coordinator === 'coordinator') {
+                $_SESSION['user_type'] = 'coordinator';
+                header("Location: ./coordinator/job.php");
+            } else {
+                echo "User role not found";
+            }
+            exit();
+        } else {
+            echo "Invalid email or password";
+        }
     } else {
         echo "Invalid email or password";
     }
-} else {
-    echo "Invalid email or password";
-}
-
-$stmt->close();
-$conn->close();
+        $stmt->close();
+    $conn->close();
 }
 ?>
 
@@ -218,7 +214,7 @@ $conn->close();
               class="custom-border w-full h-full"
             />
           </div>
-          <button type="submit">Log In</button>
+          <button type="submit" class="font-semibold bg-fontColor w-[150px] lg:w-[300px] text-white py-2 rounded-md hover:bg-gray-700 transition duration-200 ease-in-out">Log In</button>
           <div class="mt-4 flex flex-col items-center gap-2">
             <span class="text-[12px]">Or sign in using</span>
 
