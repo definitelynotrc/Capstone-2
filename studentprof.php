@@ -1,12 +1,51 @@
 <?php
 include 'db.php'; 
 session_start();
+$userId = $_SESSION['userId']; 
+
+$sql = "SELECT * FROM user WHERE UserId = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $userId);
+$stmt->execute();
+$result = $stmt->get_result();
+$user = $result->fetch_assoc();
 
 
-    
+$sql = "SELECT * FROM documents WHERE UserId = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $userId);
+$stmt->execute();
+
+$documents = $stmt->get_result()->fetch_all(MYSQLI_ASSOC); 
+ 
+
+$sql = "SELECT * FROM student WHERE UserId = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $userId);
+$stmt->execute();
+$result = $stmt->get_result();
+$student = $result->fetch_assoc(); 
 
 
+$sql = "SELECT skillname FROM skills WHERE UserId = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $userId);
+$stmt->execute();
+$skills = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+$sql = "SELECT * FROM location WHERE UserId = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $userId);
+$stmt->execute();
+$result = $stmt->get_result();
+$location = $result->fetch_assoc();
+
+
+$stmt->close();
+$conn->close();
 ?>
+
+
 
 
 <!DOCTYPE html>
@@ -324,16 +363,18 @@ session_start();
         class="lg:col-span-3 custom-shadow lg:row-span-1 flex flex-row mx-auto rounded-md w-[350px] min-h-20 lg:w-full lg:min-h-40 bg-profcard shadow-black lg:items-center"
       >
         <div class="w-[20%] flex items-center justify-center">
-          <img
-            src="./img/Group 136.png"
-            alt=""
-            class="w-[53px] h-[50px] lg:w-[135px] lg:h-[130px] object-cover"
-          />
+         <img name="photo" id="photo" src="<?php echo htmlspecialchars($student['photo']); ?>" alt="Profile Photo" class="w-[53px] h-[50px] lg:w-[135px] lg:h-[130px] object-cover" />
         </div>
         <div class="flex flex-col w-[50%] gap-2">
           <div>
-            <h1 class="font-semibold lg:text-3xl">Clarence Ariel Pamilar</h1>
-            <p class="text-xs lg:text-xl">BSIT-4G</p>
+            <h1 class="font-semibold lg:text-3xl"><?php if (isset($user['firstName'], $user['MiddleName'], $user['LastName'])) {
+    echo htmlspecialchars($user['firstName'] . ' ' . $user['MiddleName'] . ' ' . $user['LastName']);
+}
+ ?></h1>
+           <p class="text-xs lg:text-xl">
+    <?php echo htmlspecialchars($user['course']) . ' -4 ' . htmlspecialchars($user['section']); ?>
+</p>
+
           </div>
           <div class="">
             <p class="text-[10px] font-light lg:text-xl">Address</p>

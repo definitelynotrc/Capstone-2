@@ -79,7 +79,7 @@ if (!empty($_FILES['photo']['name'])) {
 }
 
 
-// Check if user record exists
+
 $userCheckQuery = "SELECT COUNT(*) as count FROM user WHERE userId = ?";
 $stmt = $conn->prepare($userCheckQuery);
 $stmt->bind_param('i', $userId);
@@ -88,20 +88,20 @@ $result = $stmt->get_result();
 $row = $result->fetch_assoc();
 
 if ($row['count'] == 0) {
-    // Insert new user record
+
     $insertUserQuery = "INSERT INTO user (userId, firstName, middleName, lastName, emailAddress) VALUES (?, ?, ?, ?, ?)";
     $stmt = $conn->prepare($insertUserQuery);
     $stmt->bind_param('issss', $userId, $firstName, $middleName, $lastName, $emailAddress);
     $stmt->execute();
 } else {
-    // Update existing user record
+
     $updateUserQuery = "UPDATE user SET firstName = COALESCE(NULLIF(?, ''), firstName), middleName = COALESCE(NULLIF(?, ''), middleName), lastName = COALESCE(NULLIF(?, ''), lastName), emailAddress = COALESCE(NULLIF(?, ''), emailAddress) WHERE userId = ?";
     $stmt = $conn->prepare($updateUserQuery);
     $stmt->bind_param('ssssi', $firstName, $middleName, $lastName, $emailAddress, $userId);
     $stmt->execute();
 }
 
-// Check if student record exists
+
 $studentCheckQuery = "SELECT COUNT(*) as count FROM student WHERE userId = ?";
 $stmt = $conn->prepare($studentCheckQuery);
 $stmt->bind_param('i', $userId);
@@ -110,20 +110,20 @@ $result = $stmt->get_result();
 $row = $result->fetch_assoc();
 
 if ($row['count'] == 0) {
-    // Insert new student record
+
     $insertStudentQuery = "INSERT INTO student (userId, studentNo, section, dob, course, phoneNo, experience, aboutMe, photo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
     $stmt = $conn->prepare($insertStudentQuery);
     $stmt->bind_param('isssssss', $userId, $studentNo, $section, $dob, $course, $phoneNo, $experience, $aboutMe, $photo);
     $stmt->execute();
 } else {
-    // Update existing student record
+
     $updateStudentQuery = "UPDATE student SET studentNo = COALESCE(NULLIF(?, ''), studentNo), section = COALESCE(NULLIF(?, ''), section), dob = COALESCE(NULLIF(?, ''), dob), course = COALESCE(NULLIF(?, ''), course), phoneNo = COALESCE(NULLIF(?, ''), phoneNo), experience = COALESCE(NULLIF(?, ''), experience), aboutMe = COALESCE(NULLIF(?, ''), aboutMe), photo = COALESCE(NULLIF(?, ''), photo) WHERE userId = ?";
     $stmt = $conn->prepare($updateStudentQuery);
     $stmt->bind_param('ssssssssi', $studentNo, $section, $dob, $course, $phoneNo, $experience, $aboutMe, $photo, $userId);
     $stmt->execute();
 }
 
-// Check if address record exists
+
 $addressCheckQuery = "SELECT COUNT(*) as count FROM location WHERE userId = ?";
 $stmt = $conn->prepare($addressCheckQuery);
 $stmt->bind_param('i', $userId);
@@ -132,34 +132,33 @@ $result = $stmt->get_result();
 $row = $result->fetch_assoc();
 
 if ($row['count'] == 0) {
-    // Insert new address record
+
     $insertAddressQuery = "INSERT INTO location (userId, Street, Barangay, City, Province) VALUES (?, ?, ?, ?, ?)";
     $stmt = $conn->prepare($insertAddressQuery);
     $stmt->bind_param('issss', $userId, $street, $barangay, $city, $province);
     $stmt->execute();
 } else {
-    // Update existing address record
+
     $updateAddressQuery = "UPDATE location SET Street = COALESCE(NULLIF(?, ''), Street), Barangay = COALESCE(NULLIF(?, ''), Barangay), City = COALESCE(NULLIF(?, ''), City), Province = COALESCE(NULLIF(?, ''), Province) WHERE userId = ?";
     $stmt = $conn->prepare($updateAddressQuery);
     $stmt->bind_param('ssssi', $street, $barangay, $city, $province, $userId);
     $stmt->execute();
 }   
 
-// Handle skills
+
 if (!empty($skills)) {
     $skillsArray = array_map('trim', explode('-=-', $skills));
 
-    // Clear existing skills for the user (optional, depending on requirements)
     $deleteSkillsQuery = "DELETE FROM skills WHERE userId = ?";
     $stmt = $conn->prepare($deleteSkillsQuery);
     $stmt->bind_param('i', $userId);
     $stmt->execute();
 
-    // Insert new skills
+
     foreach ($skillsArray as $skill) {
         $skill = trim($skill);
 
-        // Check if the skill already exists
+     
         $skillQuery = "SELECT skillId FROM skills WHERE skillname = ?";
         $stmt = $conn->prepare($skillQuery);
         $stmt->bind_param('s', $skill);
@@ -167,11 +166,11 @@ if (!empty($skills)) {
         $result = $stmt->get_result();
 
         if ($result->num_rows > 0) {
-            // Skill exists, get the skillId
+    
             $row = $result->fetch_assoc();
             $skillId = $row['skillId'];
         } else {
-            // Skill does not exist, insert it
+    
             $insertSkillQuery = "INSERT INTO skills (skillname, UserId) VALUES (?, ?)";
             $stmt = $conn->prepare($insertSkillQuery);
             $stmt->bind_param('si', $skill, $userId);
@@ -183,7 +182,7 @@ if (!empty($skills)) {
     }
 }
 
-// Redirect back to the profile page or display a success message
-// header("Location: studentprof.php");
+
+header("Location: studentprof.php");
 exit();
 ?>

@@ -32,23 +32,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
         }
     }
-foreach ($fileTypes as $key => $description) {
-        if (isset($_FILES[$key]) && $_FILES[$key]['error'] == UPLOAD_ERR_OK) {
-            $filename = $_FILES[$key]['name'];
-            $tmp_name = $_FILES[$key]['tmp_name'];
 
-            if (move_uploaded_file($tmp_name, "uploads/$filename")) {
-                $stmt = $conn->prepare("INSERT INTO documents (UserId, filename) VALUES (?, ?)");
-                $stmt->bind_param("is", $user_id, $filename);
-                $stmt->execute();
-                $stmt->close();
-            } else {
-                echo "Failed to upload $description.";
-            }
-        }
-    }
-
-    header("Location: index.php");
+    header("Location: edit-prof.php");
     exit();
 }
 ?>
