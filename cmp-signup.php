@@ -28,34 +28,34 @@ $uploadOk = 1;
 $imageFileType = strtolower(pathinfo($moa, PATHINFO_EXTENSION));
 
 
-// if (file_exists($target_file)) {
-//     echo "Sorry, file already exists.";
-//     $uploadOk = 0;
-// }
+if (file_exists($moa)) {
+    echo "Sorry, file already exists.";
+    $uploadOk = 0;
+}
 
 
-// if ($_FILES["file"]["size"] > 5000000) {
-//     echo "Sorry, your file is too large.";
-//     $uploadOk = 0;
-// }
+if ($_FILES["file"]["size"] > 5000000) {
+    echo "Sorry, your file is too large.";
+    $uploadOk = 0;
+}
 
 
-// if ($imageFileType != "pdf" && $imageFileType != "doc" && $imageFileType != "docx") {
-//     echo "Sorry, only PDF, DOC & DOCX files are allowed.";
-//     $uploadOk = 0;
-// }
+if ($imageFileType != "pdf" && $imageFileType != "doc" && $imageFileType != "docx") {
+    echo "Sorry, only PDF, DOC & DOCX files are allowed.";
+    $uploadOk = 0;
+}
 
 
-// if ($uploadOk == 0) {
-//     echo "Sorry, your file was not uploaded.";
-//     exit();
+if ($uploadOk == 0) {
+    echo "Sorry, your file was not uploaded.";
+    exit();
 
-// } else {
-//     if (!move_uploaded_file($_FILES["file"]["tmp_name"], $target_file)) {
-//         echo "Sorry, there was an error uploading your file.";
-//         exit();
-//     }
-// }
+} else {
+    if (!move_uploaded_file($_FILES["file"]["tmp_name"], $moa)) {
+        echo "Sorry, there was an error uploading your file.";
+        exit();
+    }
+}
 
  if (empty($errors)) {
         $hashed_password = password_hash($password, PASSWORD_BCRYPT);
@@ -295,35 +295,16 @@ $imageFileType = strtolower(pathinfo($moa, PATHINFO_EXTENSION));
               <input type="password" name="pw" id="pw" class="custom-border" />
             </div>
 
-            <div class="relative w-64">
-              <label for="">Memorandum of Agreement</label>
-              <input
-                type="file"
-                id="file"
-                name="file"
-                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              />
-              <label
-                for="file"
-                class="flex items-center px-3 py-2 bg-white text-gray-700 border border-fontColor rounded-md cursor-pointer hover:bg-gray-50"
-              >
-                <span class="flex-grow">Choose a file...</span>
-                <svg
-                  class="w-5 h-5 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 4v16m8-8H4"
-                  ></path>
-                </svg>
-              </label>
-            </div>
+           <div class="flex flex-col items-center gap-2 p-4   rounded-lg bg-white ">
+  <label for="file" class="text-lg font-medium ">Memorandum of Agreement</label>
+  <input
+    type="file"
+    id="file"
+    name="file"
+    class="mt-2 p-2 border border-gray-300 rounded-md text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+  />
+</div>
+
             <button
               type="submit"
               class="font-semibold bg-fontColor w-[150px] lg:w-[190px] text-white py-2 rounded-md hover:bg-gray-700 transition duration-200 ease-in-out"

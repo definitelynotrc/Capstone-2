@@ -1,3 +1,57 @@
+<?php
+session_start();
+include 'db.php'; // Database connection file
+
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit();
+}
+
+$user_id = $_SESSION['user_id'];
+
+// Fetch user data
+$stmt = $conn->prepare("SELECT * FROM user WHERE userId = ?");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$user = $result->fetch_assoc();
+$stmt->close();  
+
+// Fetch student data
+$stmt = $conn->prepare("SELECT * FROM student WHERE userId = ?");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$student = $result->fetch_assoc();
+$stmt->close();
+
+$defaultPhoto = './img/default.jpg';
+
+
+
+// Fetch location data
+$stmt = $conn->prepare("SELECT * FROM location WHERE userId = ?");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$location = $result->fetch_assoc();
+$stmt->close();
+
+// Fetch skills data
+$stmt = $conn->prepare("SELECT skillname FROM skills WHERE UserId = ?");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$skills = [];
+while ($row = $result->fetch_assoc()) {
+    $skills[] = $row['skillname'];
+}
+$stmt->close();
+
+$skillsString = implode(',', $skills);
+?>
+
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -391,336 +445,265 @@
     <div id="overlay" class="overlay"></div>
 
     <main class="max-w-[1920px] mt-2 lg:ml-52 md:ml-52 p-4">
-      <div class="flex flex-col items-center w-full">
-        <div class="lg:flex lg:flex-row w-full items-center lg:justify-between">
-          <div class="flex lg:items-start items-center">
+    <form method="post" action="update_profile.php" class="flex flex-col items-center w-full" id="form" enctype="multipart/form-data">
+    <div class="lg:flex lg:flex-row w-full items-center lg:justify-between">
+        <div class="flex lg:items-start items-center">
             <h3 class="text-center font-semibold text-3xl">Edit Profile</h3>
-          </div>
-          <div class="hidden lg:flex flex-row items-end gap-5">
-            <buttton
-              class="change-photo p-2 lg:py-1 lg:px-4 lg:text-base rounded-md font-semibold text-xs"
-              >Cancel</buttton
-            >
-            <buttton
-              class="remove-photo p-2 lg:py-1 lg:px-4 lg:text-base rounded-md font-semibold text-xs"
-              >Submit</buttton
-            >
-          </div>
         </div>
+        <div class="hidden lg:flex flex-row items-end gap-5">
+            <input type="reset" value="Cancel" class="change-photo p-2 lg:py-1 lg:px-4 lg:text-lg rounded-md font-semibold text-xs">
+            <input type="submit" value="Submit" class="remove-photo p-2 lg:py-1 lg:px-4 lg:text-lg rounded-md font-semibold text-xs">
+        </div>
+    </div>
 
-        <div class="flex flex-col lg:flex-row mt-5 items-center w-full gap-5">
-          <div class="flex flex-col items-center gap-5 lg:flex-row w-full">
+    <div class="flex flex-col lg:flex-row mt-5 items-center w-full gap-5">
+        <div class="flex flex-col items-center gap-5 lg:flex-row w-full">
             <div>
-              <img
-                src="./img/Group 136.png"
-                alt=""
-                class="w-32 h-32 rounded-full object-cover"
-              />
+          <img src="./uploads/<?php echo isset($student['photo']) && !empty($student['photo']) ? $student['photo'] : $defaultPhoto; ?>" alt="User Photo" class="w-32 h-32 rounded-full object-cover">
+     
+
             </div>
-            <div class="flex flex-row gap-10">
-              <button
-                class="change-photo text-sm px-2 py-1 rounded-md font-semibold"
-              >
-                Change photo</button
-              ><button
-                class="remove-photo text-sm px-2 py-1 rounded-md font-semibold"
-              >
-                Remove photo
-              </button>
+            <div class="flex flex-col">
+                <label for="photo" class="font-medium text-base">Change Photo</label>
+                <input type="file" name="photo" id="photo" class="change-photo text-sm px-2 py-1 rounded-md font-semibold">
             </div>
-          </div>
         </div>
-        <div class="flex w-full lg:flex-row gap-4 mt-5">
-          <div class="w-full lg:w-[70%] flex flex-col gap-2">
+    </div>
+    <div class="flex w-full lg:flex-row gap-4 mt-5">
+        <div class="w-full lg:w-[70%] flex flex-col gap-2">
             <div class="w-full flex flex-col lg:flex-row gap-2">
-              <div class="flex flex-col w-full">
-                <label for="" class="font-medium text-sm">First name</label
-                ><input
-                  type="text"
-                  class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black"
-                />
-              </div>
-              <div class="flex flex-col w-full">
-                <label for="" class="font-medium text-sm">Middle name</label
-                ><input
-                  class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black"
-                  type="text"
-                />
-              </div>
-              <div class="flex flex-col w-full">
-                <label for="" class="font-medium text-sm">Last name</label
-                ><input
-                  class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black"
-                  type="text"
-                />
-              </div>
+                <div class="flex flex-col w-full">
+                    <label for="firstName" class="font-medium text-sm">First name</label>
+                    <input name="firstName" type="text" value="<?php echo htmlspecialchars($user['firstName']); ?>" class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black">
+                </div>
+                <div class="flex flex-col w-full">
+                    <label for="middleName" class="font-medium text-sm">Middle name</label>
+                    <input name="middleName" type="text" value="<?php echo htmlspecialchars($user['MiddleName']); ?>" class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black">
+                </div>
+                <div class="flex flex-col w-full">
+                    <label for="lastName" class="font-medium text-sm">Last name</label>
+                    <input name="lastName" type="text" value="<?php echo htmlspecialchars($user['LastName']); ?>" class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black">
+                </div>
             </div>
             <div class="w-full flex flex-col lg:flex-row gap-2">
-              <div class="flex flex-col w-full">
-                <label for="" class="font-medium text-sm">Student number</label
-                ><input
-                  class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black"
-                  type="text"
-                />
-              </div>
-              <div class="flex flex-col w-full">
-                <label for="" class="font-medium text-sm">Section</label>
-                <select
-                  name=""
-                  id=""
-                  class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black"
-                >
-                  <option value=""></option>
-                </select>
-              </div>
-              <div class="flex flex-col w-full">
-                <label for="" class="font-medium text-sm">Birth date</label>
-                <input
-                  type="date"
-                  name=""
-                  id=""
-                  class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black"
-                />
-              </div>
+                <div class="flex flex-col w-full">
+                    <label for="StudentNo" class="font-medium text-sm">Student number</label>
+                    <input name="StudentNo" type="text" value="<?php echo htmlspecialchars($student['StudentNo']); ?>" class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black">
+                </div>
+                <div class="flex flex-col w-full">
+                    <label for="section" class="font-medium text-sm">Section</label>
+                    <select name="section" id="section" class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black">
+                        <?php
+                        $sections = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N'];
+                        foreach ($sections as $sec) {
+                            $selected = $sec == $student['section'] ? 'selected' : '';
+                            echo "<option value=\"$sec\" $selected>$sec</option>";
+                        }
+                        ?>
+                    </select>
+                </div>
+                <div class="flex flex-col w-full">
+                    <label for="DoB" class="font-medium text-sm">Date of Birth</label>
+                    <input type="date" name="DoB" value="<?php echo htmlspecialchars($student['DoB']); ?>" class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black">
+                </div>
             </div>
             <div class="w-full flex flex-col gap-2">
-              <div>
-                <label for="" class="font-medium text-sm">Course</label
-                ><select
-                  name=""
-                  id=""
-                  class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black"
-                >
-                  <option value=""></option>
-                </select>
-              </div>
-              <div>
-                <label for="" class="font-medium text-sm">Email address</label
-                ><input
-                  type="text"
-                  class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black"
-                />
-              </div>
-              <div>
-                <label for="" class="font-medium text-sm">Phone number</label
-                ><input
-                  type="text"
-                  class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black"
-                />
-              </div>
-              <div>
-                <label for="" class="font-medium text-sm">Address</label
-                ><input
-                  type="text"
-                  class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black"
-                />
-              </div>
-              <div class="dropdown">
-                <label for="skills" class="font-medium text-sm">Skills</label>
-                <div
-                  class="input-container"
-                  id="input-container"
-                  onclick="focusInput()"
-                >
-                  <input
-                    type="text"
-                    id="skills"
-                    class="skills-input"
-                    oninput="filterFunction()"
-                    onfocus="showDropdown()"
-                    onblur="hideDropdown()"
-                    autocomplete="off"
-                  />
+                <div>
+                    <label for="course" class="font-medium text-sm">Course</label>
+                    <select name="course" id="course" class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black">
+                        <?php
+                        $courses = [
+                            'Bachelor Of Science in Information Technology',
+                            'Bachelor of Science in Architecture',
+                            'Bachelor of Science in Criminology',
+                            'Bachelor of Elementary Education',
+                            'Bachelor of Physical Education',
+                            'Bachelor of Secondary Education',
+                            'Bachelor of Technology and Livelihood Education',
+                            'Bachelor of Science in Industrial Education',
+                            'Bachelor of Science in Physical Education',
+                            'Bachelor of Science in Civil Engineering',
+                            'Bachelor of Science in Electrical Engineering',
+                            'Bachelor of Science in Mechanical Engineering',
+                            'Bachelor of Science in Business Administration',
+                            'Bachelor of Science in Entrepreneurship',
+                            'Bachelor of Science in Hospitality Management',
+                            'Bachelor of Science in Tourism Management',
+                            'Bachelor of Science in Hotel And Restaurant Management',
+                            'Bachelor of Public Administration'
+                        ];
+                        foreach ($courses as $course) {
+                            $selected = $course == $student['course'] ? 'selected' : '';
+                            echo "<option value=\"$course\" $selected>$course</option>";
+                        }
+                        ?>
+                    </select>
                 </div>
-                <div id="dropdown-content" class="dropdown-content"></div>
-              </div>
-              <div>
-                <label for="" class="font-medium text-sm">Experiences</label
-                ><textarea
-                  name=""
-                  id=""
-                  class="min-h-20 px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black"
-                ></textarea>
-              </div>
-              <div>
-                <label for="" class="font-medium text-sm">About me</label
-                ><textarea
-                  name=""
-                  id=" "
-                  class="min-h-20 px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black"
-                ></textarea>
-              </div>
+                <div>
+                    <label for="emailAddress" class="font-medium text-sm">Email address</label>
+                    <input name="emailAddress" type="text" value="<?php echo htmlspecialchars($user['EmailAddress']); ?>" class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black">
+                </div>
+                <div>
+                    <label for="phoneNo" class="font-medium text-sm">Phone number</label>
+                    <input name="phoneNo" type="text" value="<?php echo htmlspecialchars($student['phoneNo']); ?>" class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black">
+                </div>
+                <div>
+                    <label for="Street" class="font-medium text-sm">Street</label>
+                    <input name="Street" type="text" value="<?php echo $location !=null ? htmlspecialchars(  $location['Street'] ): '' ; ?>" class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black">
+                </div>
+                <div>
+                    <label for="Barangay" class="font-medium text-sm">Barangay</label>
+                    <input name="Barangay" type="text" value="<?php echo $location !=null ? htmlspecialchars(  $location['Barangay'] ): '' ; ?>" class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black">
+                </div>
+                <div>
+                    <label for="City" class="font-medium text-sm">City/Town</label>
+                    <input name="City" type="text" value="<?php echo $location !=null ? htmlspecialchars(  $location['City'] ): '' ; ?>" class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black">
+                </div>
+                <div>
+                    <label for="Province" class="font-medium text-sm">Province</label>
+                    <input name="Province" type="text" value="<?php echo $location !=null ? htmlspecialchars(  $location['Province'] ): '' ; ?>" class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black">
+                </div>
+                <div class="dropdown">
+                    <label for="skills" class="font-medium text-sm">Skills</label>
+                    <div class="input-container" id="input-container" onclick="focusInput()">
+                        <input name="skills" type="text" id="skills" value="<?php echo htmlspecialchars($skillsString); ?>" class="skills-input" oninput="filterFunction()" onfocus="showDropdown()" onblur="hideDropdown()" autocomplete="off">
+                    </div>
+                    <div id="dropdown-content" class="dropdown-content"></div>
+                </div>
+                <div>
+                    <label for="Experience" class="font-medium text-sm">Experiences</label>
+                    <textarea name="Experience" class="min-h-20 px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black"><?php echo htmlspecialchars($student['Experience']); ?></textarea>
+                </div>
+                <div>
+                    <label for="AboutMe" class="font-medium text-sm">About me</label>
+                    <textarea name="AboutMe" class="min-h-20 px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black"><?php echo htmlspecialchars($student['AboutMe']); ?></textarea>
+                </div>
             </div>
-          </div>
-          <div class="hidden lg:w-[30%] lg:flex lg:items-center">
-            <div
-              class="w-full lg:min-h-[50px] flex flex-col gap-2 items-center"
-            >
-              <div
-                class="w-full flex flex-col border p-3 border-b-gray-950 rounded-lg"
-              >
-                <label for="" class="text-sm font-medium lg:text-xl"
-                  >Resume</label
-                >
-                <input type="file" name="" id="" />
-              </div>
-              <div
-                class="w-full flex flex-col border border-b-gray-950 p-3 rounded-lg"
-              >
-                <label for="" class="text-sm font-medium lg:text-base"
-                  >Certificate of Registration
-                </label>
-                <input type="file" name="" id="" />
-              </div>
-              <div
-                class="w-full flex flex-col border p-3 border-b-gray-950 rounded-lg"
-              >
-                <label for="" class="text-sm font-medium lg:text-base"
-                  >Certificate of Participation (PDOS)</label
-                >
-                <input type="file" name="" id="" />
-              </div>
-              <div
-                class="w-full flex flex-col border p-3 border-b-gray-950 rounded-lg"
-              >
-                <label for="" class="text-sm font-medium lg:text-base"
-                  >On - the - Job Training Program and Information Sheet</label
-                >
-                <input type="file" name="" id="" />
-              </div>
-              <div
-                class="w-full flex flex-col border p-3 border-b-gray-950 rounded-lg"
-              >
-                <label for="" class="text-sm font-medium lg:text-base"
-                  >Application for Supervised Industrial Training</label
-                >
-                <input type="file" name="" id="" />
-              </div>
-              <div
-                class="w-full flex flex-col border p-3 border-b-gray-950 rounded-lg"
-              >
-                <label for="" class="text-sm font-medium lg:text-base"
-                  >Waiver and Permission Form (Notarized)</label
-                >
-                <input type="file" name="" id="" />
-              </div>
-              <div
-                class="w-full flex flex-col border p-3 border-b-gray-950 rounded-lg"
-              >
-                <label for="" class="text-sm font-medium lg:text-base"
-                  >Student/Univeristy Contract (Notarized)</label
-                >
-                <input type="file" name="" id="" />
-              </div>
-              <div
-                class="w-full flex flex-col border p-3 border-b-gray-950 rounded-lg"
-              >
-                <label for="" class="text-sm font-medium lg:text-base"
-                  >Physiological Evaluation Result</label
-                >
-                <input type="file" name="" id="" />
-              </div>
-              <div
-                class="w-full flex flex-col border p-3 border-b-gray-950 rounded-lg"
-              >
-                <label for="" class="text-sm font-medium lg:text-base"
-                  >Medical Result</label
-                >
-                <input type="file" name="" id="" />
-              </div>
-            </div>
-          </div>
         </div>
-      </div>
+        <div class="hidden lg:w-[30%] lg:flex lg:items-center">
+            <div class="w-full lg:min-h-[50px] flex flex-col gap-2 items-center">
+                <div class="w-full flex flex-col border p-3 border-b-gray-950 rounded-lg">
+                    <label for="resume" class="text-sm font-medium lg:text-xl">Resume</label>
+                    <input type="file" name="resume" id="resume">
+                </div>
+                <div class="w-full flex flex-col border border-b-gray-950 p-3 rounded-lg">
+                    <label for="cor" class="text-sm font-medium lg:text-base">Certificate of Registration</label>
+                    <input type="file" name="cor" id="cor">
+                </div>
+                <div class="w-full flex flex-col border p-3 border-b-gray-950 rounded-lg">
+                    <label for="pdos" class="text-sm font-medium lg:text-base">Certificate of Participation (PDOS)</label>
+                    <input type="file" name="pdos" id="pdos">
+                </div>
+                <div class="w-full flex flex-col border p-3 border-b-gray-950 rounded-lg">
+                    <label for="ojtpi" class="text-sm font-medium lg:text-base">On-the-Job Training Program and Information Sheet</label>
+                    <input type="file" name="ojtpi" id="ojtpi">
+                </div>
+                <div class="w-full flex flex-col border p-3 border-b-gray-950 rounded-lg">
+                    <label for="apsit" class="text-sm font-medium lg:text-base">Application for Supervised Industrial Training</label>
+                    <input type="file" name="apsit" id="apsit">
+                </div>
+                <div class="w-full flex flex-col border p-3 border-b-gray-950 rounded-lg">
+                    <label for="wpf" class="text-sm font-medium lg:text-base">Waiver and Permission Form (Notarized)</label>
+                    <input type="file" name="wpf" id="wpf">
+                </div>
+                <div class="w-full flex flex-col border p-3 border-b-gray-950 rounded-lg">
+                    <label for="suc" class="text-sm font-medium lg:text-base">Student/University Contract (Notarized)</label>
+                    <input type="file" name="suc" id="suc">
+                </div>
+                <div class="w-full flex flex-col border p-3 border-b-gray-950 rounded-lg">
+                    <label for="per" class="text-sm font-medium lg:text-base">Physiological Evaluation Result</label>
+                    <input type="file" name="per" id="per">
+                </div>
+                <div class="w-full flex flex-col border p-3 border-b-gray-950 rounded-lg">
+                    <label for="mr" class="text-sm font-medium lg:text-base">Medical Result</label>
+                    <input type="file" name="mr" id="mr">
+                </div>
+            </div>
+        </div>
+    </div>
 
-      <div class="flex flex-row justify-center mt-5 lg:hidden">
-        <button class="bg-button text-white px-4 py-2 rounded-md font-semibold">
-          Save
-        </button>
-      </div>
+
+    <div class="flex flex-row justify-center mt-5 lg:hidden">
+        <input type="submit" class="bg-button text-white px-4 py-2 rounded-md font-semibold">
+    </div>
+</form>
+
+
+
     </main>
     <script>
-      const skills = [
-        "HTML",
-        "CSS",
-        "JavaScript",
-        "Python",
-        "Java",
-        "C#",
-        "PHP",
-        "Ruby",
-        "C++",
-        "SQL",
-      ];
-      let selectedSkills = [];
-      const dropdownContent = document.getElementById("dropdown-content");
-      const inputField = document.getElementById("skills");
-      const inputContainer = document.getElementById("input-container");
+      
+       const skills = <?php echo json_encode($skills); ?>;
+        let selectedSkills = [];
+        const dropdownContent = document.getElementById("dropdown-content");
+        const inputField = document.getElementById("skills");
+        const inputContainer = document.getElementById("input-container");
 
-      function showDropdown() {
-        dropdownContent.classList.add("show");
-      }
-
-      function hideDropdown() {
-        setTimeout(() => {
-          dropdownContent.classList.remove("show");
-          inputField.value = "";
-        }, 200);
-      }
-
-      function filterFunction() {
-        const filter = inputField.value.toUpperCase();
-        dropdownContent.innerHTML = "";
-        let matchedSkills = skills.filter(
-          (skill) =>
-            skill.toUpperCase().includes(filter) &&
-            !selectedSkills.includes(skill)
-        );
-
-        if (matchedSkills.length === 0 && filter !== "") {
-          matchedSkills = [`Add "${inputField.value}"`];
+        function showDropdown() {
+            dropdownContent.classList.add("show");
         }
 
-        matchedSkills.forEach((skill) => {
-          const div = document.createElement("div");
-          div.textContent = skill;
-          div.onclick = function () {
-            if (skill.startsWith("Add")) {
-              skills.push(inputField.value);
-              selectedSkills.push(inputField.value);
-            } else {
-              selectedSkills.push(skill);
+        function hideDropdown() {
+            setTimeout(() => {
+                dropdownContent.classList.remove("show");
+                inputField.value = "";
+            }, 200);
+        }
+
+        function filterFunction() {
+            const filter = inputField.value.toUpperCase();
+            dropdownContent.innerHTML = "";
+            let matchedSkills = skills.filter(
+                (skill) =>
+                    skill.toUpperCase().includes(filter) &&
+                    !selectedSkills.includes(skill)
+            );
+
+            if (matchedSkills.length === 0 && filter !== "") {
+                matchedSkills = [`Add "${inputField.value}"`];
             }
-            inputField.value = "";
+
+            matchedSkills.forEach((skill) => {
+                const div = document.createElement("div");
+                div.textContent = skill;
+                div.onclick = function () {
+                    if (skill.startsWith("Add")) {
+                        skills.push(inputField.value);
+                        selectedSkills.push(inputField.value);
+                    } else {
+                        selectedSkills.push(skill);
+                    }
+                    inputField.value = "";
+                    updateSelectedSkills();
+                    dropdownContent.classList.remove("show");
+                };
+                dropdownContent.appendChild(div);
+            });
+
+            dropdownContent.classList.add("show");
+        }
+
+        function updateSelectedSkills() {
+            inputContainer.innerHTML = "";
+            selectedSkills.forEach((skill) => {
+                const skillTag = document.createElement("div");
+                skillTag.className = "skill-tag";
+                skillTag.innerHTML = `<span>${skill}</span><button onclick="removeSkill('${skill}')">&times;</button>`;
+                inputContainer.appendChild(skillTag);
+            });
+            inputContainer.appendChild(inputField);
+            inputField.focus();
+        }
+
+        function removeSkill(skill) {
+            selectedSkills = selectedSkills.filter((s) => s !== skill);
             updateSelectedSkills();
-            dropdownContent.classList.remove("show");
-          };
-          dropdownContent.appendChild(div);
-        });
+        }
 
-        dropdownContent.classList.add("show");
-      }
+        function focusInput() {
+            inputField.focus();
+        }
 
-      function updateSelectedSkills() {
-        inputContainer.innerHTML = "";
-        selectedSkills.forEach((skill) => {
-          const skillTag = document.createElement("div");
-          skillTag.className = "skill-tag";
-          skillTag.innerHTML = `<span>${skill}</span><button onclick="removeSkill('${skill}')">&times;</button>`;
-          inputContainer.appendChild(skillTag);
-        });
-        inputContainer.appendChild(inputField);
-        inputField.focus();
-      }
-
-      function removeSkill(skill) {
-        selectedSkills = selectedSkills.filter((s) => s !== skill);
-        updateSelectedSkills();
-      }
-
-      function focusInput() {
-        inputField.focus();
-      }
       //sidebar
       const sidebar = document.getElementById("default-sidebar");
       const sidebarToggle = document.getElementById("sidebarToggle");
@@ -751,6 +734,14 @@
         .addEventListener("click", function () {
           const dropdownMenu = document.getElementById("custom-dropdownMenu");
           dropdownMenu.classList.toggle("custom-hidden");
+        });
+
+        const form = document.getElementById("form");
+        form.addEventListener("submit", function (e) {
+          const input = document.getElementById("skills");
+          input.value = selectedSkills.join("-=-"); 
+          
+          e.currentTarget.submit();
         });
     </script>
     <script src="notif.js"></script>

@@ -16,7 +16,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         exit();
     }
 
-    // Fetch user details along with their role
+
     $stmt = $conn->prepare("SELECT u.UserId, u.firstName, u.middleName, u.lastName, u.emailAddress, u.password, 
                                    (SELECT 'student' FROM student s WHERE s.UserId = u.UserId) AS user_role_student,
                                    (SELECT 'company' FROM company c WHERE c.UserId = u.UserId) AS user_role_company,
@@ -36,9 +36,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION['firstname'] = $firstname;
             $_SESSION['email'] = $email;
 
+
+
+
+
             if ($role_student === 'student') {
                 $_SESSION['user_type'] = 'student';
-                header("Location: studentjobs.php");
+                header("Location: edit-prof.php");
             } elseif ($role_company === 'company') {
                 $_SESSION['user_type'] = 'company';
                 header("Location: ./company/dashboard.php");
@@ -55,7 +59,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     } else {
         echo "Invalid email or password";
     }
-        $stmt->close();
+    $stmt->close();
     $conn->close();
 }
 ?>
@@ -254,8 +258,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 </clipPath>
               </defs>
             </svg>
-            <span class="text-[12px] lg:text-"
-              >Don’t have an account? <a href=""><b> Register now!</b></a></span
+            <span class="text-[12px] lg:text-sm">
+              Don’t have an account? <a href="" class="text-black font-bold">
+               Register now!</a></span
             >
           </div>
         </form>

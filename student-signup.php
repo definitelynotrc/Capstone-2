@@ -62,6 +62,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 if ($stmt_student->execute()) {
                     $conn->commit();
                     echo "Registration successful!";
+                    header("Location:login.php");
                 } else {
                     $conn->rollback();
                     echo "Error: " . $stmt_student->error;

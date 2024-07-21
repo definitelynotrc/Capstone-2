@@ -1,3 +1,59 @@
+<?php
+session_start();
+include 'db.php'; 
+
+$fileTypes = [
+    'resume' => 'Resume',
+    'cor' => 'Certificate of Registration',
+    'pdos' => 'Certificate of Participation (PDOS)',
+    'ojtpi' => 'On-the-Job Training Program and Information Sheet',
+    'asit' => 'Application for Supervised Industrial Training',
+    'wpf' => 'Waiver and Permission Form (Notarized)',
+    'suc' => 'Student/University Contract (Notarized)',
+    'per' => 'Physiological Evaluation Result',
+    'mr' => 'Medical Result'
+];
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $user_id = $_SESSION['user_id'];
+
+    foreach ($fileTypes as $key => $description) {
+        if (isset($_FILES[$key]) && $_FILES[$key]['error'] == UPLOAD_ERR_OK) {
+            $filename = $_FILES[$key]['name'];
+            $tmp_name = $_FILES[$key]['tmp_name'];
+
+            if (move_uploaded_file($tmp_name, "uploads/$filename")) {
+                $stmt = $conn->prepare("INSERT INTO documents (UserId, filename) VALUES (?, ?)");
+                $stmt->bind_param("is", $user_id, $filename);
+                $stmt->execute();
+                $stmt->close();
+            } else {
+                echo "Failed to upload $description.";
+            }
+        }
+    }
+foreach ($fileTypes as $key => $description) {
+        if (isset($_FILES[$key]) && $_FILES[$key]['error'] == UPLOAD_ERR_OK) {
+            $filename = $_FILES[$key]['name'];
+            $tmp_name = $_FILES[$key]['tmp_name'];
+
+            if (move_uploaded_file($tmp_name, "uploads/$filename")) {
+                $stmt = $conn->prepare("INSERT INTO documents (UserId, filename) VALUES (?, ?)");
+                $stmt->bind_param("is", $user_id, $filename);
+                $stmt->execute();
+                $stmt->close();
+            } else {
+                echo "Failed to upload $description.";
+            }
+        }
+    }
+
+    header("Location: index.php");
+    exit();
+}
+?>
+
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -205,6 +261,7 @@
               >Contact Us</a
             >
             <a
+            name="logout"
               href="#"
               class="custom-block px-4 py-2 text-gray-700 hover:bg-gray-100"
               >Logout</a
@@ -322,12 +379,13 @@
       <div>
         <h1 class="text-xl font-semibold">Upload documents</h1>
       </div>
-      <div class="w-[330px] lg:w-[60%] lg:min-h-[100px] flex flex-col gap-4">
+      <div class="w-[330px] lg:w-[60%] lg:min-h-[100px] ">
+        <form action=" " method="post" enctype="multipart/form-data" class="flex flex-col gap-4">
         <div
           class="w-full flex flex-col border p-3 border-b-gray-950 rounded-lg"
         >
           <label for="" class="text-sm font-medium lg:text-xl">Resume</label>
-          <input type="file" name="" id="" />
+          <input type="file" name="resume" id="" />
         </div>
         <div
           class="w-full flex flex-col border border-b-gray-950 p-3 rounded-lg"
@@ -335,7 +393,7 @@
           <label for="" class="text-sm font-medium lg:text-xl"
             >Certificate of Registration
           </label>
-          <input type="file" name="" id="" />
+          <input type="file" name="cor" id="" />
         </div>
         <div
           class="w-full flex flex-col border p-3 border-b-gray-950 rounded-lg"
@@ -343,7 +401,7 @@
           <label for="" class="text-sm font-medium lg:text-xl"
             >Certificate of Participation (PDOS)</label
           >
-          <input type="file" name="" id="" />
+          <input type="file" name="pdos" id="" />
         </div>
         <div
           class="w-full flex flex-col border p-3 border-b-gray-950 rounded-lg"
@@ -351,7 +409,7 @@
           <label for="" class="text-sm font-medium lg:text-xl"
             >On - the - Job Training Program and Information Sheet</label
           >
-          <input type="file" name="" id="" />
+          <input type="file" name="ojtpi" id="" />
         </div>
         <div
           class="w-full flex flex-col border p-3 border-b-gray-950 rounded-lg"
@@ -359,7 +417,7 @@
           <label for="" class="text-sm font-medium lg:text-xl"
             >Application for Supervised Industrial Training</label
           >
-          <input type="file" name="" id="" />
+          <input type="file" name="asit" id="" />
         </div>
         <div
           class="w-full flex flex-col border p-3 border-b-gray-950 rounded-lg"
@@ -367,7 +425,7 @@
           <label for="" class="text-sm font-medium lg:text-xl"
             >Waiver and Permission Form (Notarized)</label
           >
-          <input type="file" name="" id="" />
+          <input type="file" name="wpf" id="" />
         </div>
         <div
           class="w-full flex flex-col border p-3 border-b-gray-950 rounded-lg"
@@ -375,7 +433,7 @@
           <label for="" class="text-sm font-medium lg:text-xl"
             >Student/Univeristy Contract (Notarized)</label
           >
-          <input type="file" name="" id="" />
+          <input type="file" name="suc" id="" />
         </div>
         <div
           class="w-full flex flex-col border p-3 border-b-gray-950 rounded-lg"
@@ -383,7 +441,7 @@
           <label for="" class="text-sm font-medium lg:text-xl"
             >Physiological Evaluation Result</label
           >
-          <input type="file" name="" id="" />
+          <input type="file" name="per" id="" />
         </div>
         <div
           class="w-full flex flex-col border p-3 border-b-gray-950 rounded-lg"
@@ -391,19 +449,28 @@
           <label for="" class="text-sm font-medium lg:text-xl"
             >Medical Result</label
           >
-          <input type="file" name="" id="" />
+          <input type="file" name="mr" id="" />
         </div>
         <div class="w-full flex flex-row justify-evenly items-center">
-          <buttton
-            class="cancel p-2 lg:py-2 lg:px-6 lg:text-lg rounded-md font-semibold text-xs"
+          <buttton type="reset"
+            class="cancel p-2 lg:py-2 lg:px-6 lg:text-lg rounded-md font-semibold text-xs  cursor-pointer"
             >Cancel</buttton
           >
-          <buttton
-            class="submit p-2 lg:py-2 lg:px-6 lg:text-lg rounded-md font-semibold text-xs"
-            >Submit</buttton
-          >
+          <input type="submit"
+            class="submit p-2 lg:py-2 lg:px-6 lg:text-lg rounded-md font-semibold text-xs cursor-pointer"
+            >
+          
         </div>
+      </form>
       </div>
+      <?php
+       echo "Session variables set:<br>";
+            echo "User ID: " . $_SESSION['user_id'] . "<br>";
+            echo "First Name: " . $_SESSION['firstname'] . "<br>";
+            echo "Email: " . $_SESSION['email'] . "<br>";
+            echo "User Type: " . $_SESSION['user_type'] . "<br>";
+      
+            ?>
     </main>
     <script>
       const sidebar = document.getElementById("default-sidebar");
