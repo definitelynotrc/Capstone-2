@@ -18,6 +18,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $DoB = isset($_POST['DoB']) ? sanitize_input($_POST['DoB']) : '';
     $section = isset($_POST['section']) ? sanitize_input($_POST['section']) : '';
     $course = isset($_POST['course']) ? sanitize_input($_POST['course']) : '';
+    $role = isset($_POST['role']) ? sanitize_input($_POST['role']) : '';
     $password = isset($_POST['pw']) ? $_POST['pw'] : '';
 
     // if (!preg_match("/^[a-zA-Z']+$/", $firstname)) {
@@ -49,8 +50,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $conn->begin_transaction();
         try {
       
-            $stmt = $conn->prepare("INSERT INTO user (firstName, middleName, lastName, EmailAddress, password) VALUES (?, ?, ?, ?, ?)");
-            $stmt->bind_param("sssss", $firstname, $middlename, $lastname, $email,  $hashed_password);
+            $stmt = $conn->prepare("INSERT INTO user (firstName, middleName, lastName, EmailAddress, userRole, password) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("ssssss", $firstname, $middlename, $lastname, $email, $role,  $hashed_password);
 
             if ($stmt->execute()) {
                 $user_id = $stmt->insert_id;
@@ -224,8 +225,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             your skills.
           </p>
         </div>
-
-      <form action="" method="post" class="flex flex-col items-center w-[90%] mx-auto">
+  
+  <form action="" method="post" class="flex flex-col items-center w-[90%] mx-auto">
   <div class="flex flex-col gap-4 mt-2 items-center">
     <div class="flex flex-row w-full gap-6">
       <div class="w-[160px] h-[30px] flex flex-col lg:w-[220px]">
@@ -296,7 +297,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <option value="Bachelor of Science in Hotel And Restaurant Management">Bachelor of Science in Hotel And Restaurant Management</option>
         <option value="Bachelor of Public Administration">Bachelor of Public Administration</option>
       </select>
+      
     </div>
+     <div class="w-[335px] h-[40px] flex flex-col lg:w-[465px]"> 
+            <label for="" class="text-sm font-medium">Role</label>
+       <select name="role" id="role" class="w-full custom-border  ">
+  
+        <option value="student" class="text-[.5rem] lg:text-sm">Student</option>
+        <option value="employer" class="text-[.5rem]  lg:text-sm">Employer</option>
+      </select>
+      </div>
     <div class="w-[335px] h-[40px] flex flex-col lg:w-[465px]">
       <label for="email" class="text-sm font-medium">Email Address</label>
       <input type="email" name="email" id="email" class="custom-border" />
@@ -305,6 +315,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
       <label for="pw" class="text-sm font-medium">Password</label>
       <input type="password" name="pw" id="pw" class="custom-border" />
     </div>
+ 
     <button type="submit" class="font-semibold bg-fontColor w-[150px] lg:w-[190px] text-white py-2 rounded-md hover:bg-gray-700 transition duration-200 ease-in-out">Sign Up</button>
   </div>
   <div class="mt-4 flex flex-col items-center gap-2">

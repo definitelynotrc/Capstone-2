@@ -2,41 +2,72 @@
 session_start();
 include 'db.php'; 
 
-$fileTypes = [
-    'resume' => 'Resume',
-    'cor' => 'Certificate of Registration',
-    'pdos' => 'Certificate of Participation (PDOS)',
-    'ojtpi' => 'On-the-Job Training Program and Information Sheet',
-    'asit' => 'Application for Supervised Industrial Training',
-    'wpf' => 'Waiver and Permission Form (Notarized)',
-    'suc' => 'Student/University Contract (Notarized)',
-    'per' => 'Physiological Evaluation Result',
-    'mr' => 'Medical Result'
-];
+$studentId = isset($_SESSION['StudentId']) ? $_SESSION['StudentId'] : null;
+$userId = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null;
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $user_id = $_SESSION['user_id'];
+function handleFileUpload($file, $uploadDir) {
+    $targetDir = $uploadDir;
+    $targetFile = $targetDir . basename($file["name"]);
+    $uploadOk = 1;
+    $fileType = strtolower(pathinfo($targetFile, PATHINFO_EXTENSION));
 
-    foreach ($fileTypes as $key => $description) {
-        if (isset($_FILES[$key]) && $_FILES[$key]['error'] == UPLOAD_ERR_OK) {
-            $filename = $_FILES[$key]['name'];
-            $tmp_name = $_FILES[$key]['tmp_name'];
-
-            if (move_uploaded_file($tmp_name, "uploads/$filename")) {
-                $stmt = $conn->prepare("INSERT INTO documents (UserId, filename) VALUES (?, ?)");
-                $stmt->bind_param("is", $user_id, $filename);
-                $stmt->execute();
-                $stmt->close();
-            } else {
-                echo "Failed to upload $description.";
-            }
-        }
+    if (file_exists($targetFile)) {
+        echo "Sorry, file already exists.";
+        $uploadOk = 0;
     }
 
-    header("Location: edit-prof.php");
-    exit();
+    if ($file["size"] > 5000000) {
+        echo "Sorry, your file is too large.";
+        $uploadOk = 0;
+    }
+
+    if($fileType != "pdf" && $fileType != "doc" && $fileType != "docx") {
+        echo "Sorry, only PDF, DOC, & DOCX files are allowed.";
+        $uploadOk = 0;
+    }
+
+    if ($uploadOk == 0) {
+        echo "Sorry, your file was not uploaded.";
+    } else {
+        if (move_uploaded_file($file["tmp_name"], $targetFile)) {
+            return $targetFile;
+        } else {
+            echo "Sorry, there was an error uploading your file.";
+        }
+    }
+    return false;
 }
+
+// Define upload directory including subfolder
+$uploadDir = "uploads/documents/"; // Make sure this directory exists and is writable
+
+// Process each file upload
+$files = ['resume', 'cor', 'pdos', 'ojtpi', 'asit', 'wpf', 'suc', 'per', 'mr'];
+$filePaths = [];
+
+foreach ($files as $file) {
+    if (isset($_FILES[$file])) {
+        $filePath = handleFileUpload($_FILES[$file], $uploadDir);
+        if ($filePath) {
+            $filePaths[$file] = $filePath;
+        }
+    }
+}
+
+foreach ($filePaths as $type => $path) {
+    // Extract the filename from the full path
+    $filename = basename($path);
+    $sql = "INSERT INTO documents (userId, fileType, filename, StudentId) VALUES ('$userId', '$type', '$filename', '$studentId')";
+    if ($conn->query($sql) === TRUE) {
+        echo "File $type uploaded and saved successfully.";
+    } else {
+        echo "Error: " . $sql . "<br>" . $conn->error;
+    }
+}
+
+$conn->close();
 ?>
+
 
 
 <!DOCTYPE html>
@@ -255,6 +286,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </div>
       </div>
     </nav>
+
     <aside
       id="default-sidebar"
       class="custom-sideborder sidebar fixed top-0 left-0 z-40 w-52 h-screen transition-transform -translate-x-full md:translate-x-0 sm:translate-x-0"
@@ -365,6 +397,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <h1 class="text-xl font-semibold">Upload documents</h1>
       </div>
       <div class="w-[330px] lg:w-[60%] lg:min-h-[100px] ">
+         
         <form action=" " method="post" enctype="multipart/form-data" class="flex flex-col gap-4">
         <div
           class="w-full flex flex-col border p-3 border-b-gray-950 rounded-lg"
@@ -448,14 +481,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </div>
       </form>
       </div>
-      <?php
-       echo "Session variables set:<br>";
-            echo "User ID: " . $_SESSION['user_id'] . "<br>";
-            echo "First Name: " . $_SESSION['firstname'] . "<br>";
-            echo "Email: " . $_SESSION['email'] . "<br>";
-            echo "User Type: " . $_SESSION['user_type'] . "<br>";
-      
-            ?>
+
     </main>
     <script>
       const sidebar = document.getElementById("default-sidebar");

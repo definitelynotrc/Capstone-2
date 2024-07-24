@@ -19,6 +19,7 @@ $companyname = sanitize_input($_POST['cmpname']);
 $email = sanitize_input($_POST['email']);
 $password = isset($_POST['pw']) ? $_POST['pw'] : '';
 $website = isset($_POST['website']) ? $_POST['website'] : '';
+$role = isset($_POST['role']) ? $_POST['role'] : '';
 
 
 
@@ -63,8 +64,8 @@ if ($uploadOk == 0) {
         $conn->begin_transaction();
         try {
       
-            $stmt = $conn->prepare("INSERT INTO user (firstName, middleName, lastName, EmailAddress, password) VALUES (?, ?, ?, ?, ?)");
-            $stmt->bind_param("sssss", $firstname, $middlename, $lastname, $email,  $hashed_password);
+            $stmt = $conn->prepare("INSERT INTO user (firstName, middleName, lastName, EmailAddress, userRole, password) VALUES (?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("ssssss", $firstname, $middlename, $lastname, $email, $role,  $hashed_password);
 
             if ($stmt->execute()) {
                 $user_id = $stmt->insert_id;
@@ -283,9 +284,18 @@ if ($uploadOk == 0) {
                   class="custom-border w-full h-full"
                 />
               </div>
+              
             </div>
           </div>
+          
           <div class="flex flex-col gap-4 mt-4 w-full items-center">
+             <div class="w-[345px] h-[40px] flex flex-col lg:w-[465px]">
+              <label for="" class="text-sm font-medium">Role</label>
+       <select name="role" id="role" class="custom-border">
+        <option value="student" class="text-[.5rem] lg:text-sm">Student</option>
+        <option value="employer" class="text-[.5rem]  lg:text-sm">Employer</option>
+      </select>
+          </div>
             <div class="w-[345px] h-[40px] flex flex-col lg:w-[465px]">
               <label for="" class="text-sm font-medium">Email Address</label
               ><input type="email" name="email" id="" class="custom-border" />

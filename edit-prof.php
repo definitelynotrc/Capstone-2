@@ -38,13 +38,13 @@ $location = $result->fetch_assoc();
 $stmt->close();
 
 // Fetch skills data
-$stmt = $conn->prepare("SELECT skillname FROM skills WHERE UserId = ?");
+$stmt = $conn->prepare("SELECT skillName FROM skills WHERE UserId = ?");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
 $skills = [];
 while ($row = $result->fetch_assoc()) {
-    $skills[] = $row['skillname'];
+    $skills[] = $row['skillName'];
 }
 $stmt->close();
 
@@ -138,80 +138,90 @@ $skillsString = implode(',', $skills);
         background-color: #3e3c3c;
         color: white;
       }
-      .dropdown {
-        position: relative;
-        display: inline-block;
-        width: 100%;
-      }
+   /* Dropdown container */
+.dropdown {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
 
-      .input-container {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        border: 1px solid #ccc;
-        border-radius: 5px;
-        padding: 5px;
-        cursor: text;
-      }
+/* Input container */
+.input-container {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 5px;
+    cursor: text;
+}
 
-      .input-container input {
-        border: none;
-        outline: none;
-        flex-grow: 1;
+/* Input field */
+.input-container input {
+    border: none;
+    outline: none;
+    flex-grow: 1;
+    min-width: 150px;
+}
 
-        min-width: 150px;
-      }
+/* Dropdown content */
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #f9f9f9;
+    min-width: 100%;
+    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+    max-height: 200px;
+    overflow-y: auto;
+    border: solid 1px black;
+}
 
-      .dropdown-content {
-        display: none;
-        position: absolute;
-        background-color: #f9f9f9;
-        min-width: 100%;
-        box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
-        z-index: 1;
-        max-height: 200px;
-        overflow-y: auto;
-        border: solid 1px black;
-      }
+/* Dropdown item */
+.dropdown-content div {
+    color: black;
+    padding: 8px 16px;
+    text-decoration: none;
+    display: block;
+    cursor: pointer;
+}
 
-      .dropdown-content div {
-        color: black;
-        padding: 8px 16px;
-        text-decoration: none;
-        display: block;
-        cursor: pointer;
-      }
+/* Dropdown item hover */
+.dropdown-content div:hover {
+    background-color: #f1f1f1;
+}
 
-      .dropdown-content div:hover {
-        background-color: #f1f1f1;
-      }
+/* Show class for dropdown */
+.show {
+    display: block;
+}
 
-      .show {
-        display: block;
-      }
+/* Skill tag */
+.skill-tag {
+    background-color: #4a4848;
+    padding: 5px 10px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    margin-right: 5px;
+    margin-bottom: 5px;
+}
 
-      .skill-tag {
-        background-color: #4a4848;
-        padding: 5px 10px;
-        border-radius: 5px;
-        display: flex;
-        align-items: center;
-        margin-right: 5px;
-        margin-bottom: 5px;
-      }
+/* Skill tag text */
+.skill-tag span {
+    margin-right: 5px;
+    color: white;
+}
 
-      .skill-tag span {
-        margin-right: 5px;
-        color: white;
-      }
+/* Skill tag button */
+.skill-tag button {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+}
 
-      .skill-tag button {
-        background: none;
-        border: none;
-        color: white;
-        cursor: pointer;
-        font-size: 16px;
-      }
       .custom-hidden {
         display: none;
       }
@@ -396,7 +406,7 @@ $skillsString = implode(',', $skills);
             </a>
           </li>
           <li>
-            <a href="#" class="flex items-center p-2">
+            <a href="studentdocument.php" class="flex items-center p-2">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="24"
@@ -633,76 +643,102 @@ $skillsString = implode(',', $skills);
     </main>
     <script>
       
-       const skills = <?php echo json_encode($skills); ?>;
-        let selectedSkills = [];
-        const dropdownContent = document.getElementById("dropdown-content");
-        const inputField = document.getElementById("skills");
-        const inputContainer = document.getElementById("input-container");
 
-        function showDropdown() {
-            dropdownContent.classList.add("show");
-        }
+// Initialize skills from PHP
+const skills = <?php echo json_encode($skills); ?>;
 
-        function hideDropdown() {
-            setTimeout(() => {
-                dropdownContent.classList.remove("show");
+// Initialize selectedSkills from the backend skills, ensuring no duplicates
+let selectedSkills = skills.slice(); // Start with existing skills
+
+const dropdownContent = document.getElementById("dropdown-content");
+const inputField = document.getElementById("skills");
+const inputContainer = document.getElementById("input-container");
+
+// Show the dropdown
+function showDropdown() {
+    dropdownContent.classList.add("show");
+}
+
+// Hide the dropdown
+function hideDropdown() {
+    setTimeout(() => {
+        dropdownContent.classList.remove("show");
+        inputField.value = "";
+    }, 200);
+}
+
+function filterFunction() {
+    const filter = inputField.value.toUpperCase();
+    console.log("Filtering with:", filter); // Debug log
+    dropdownContent.innerHTML = ""; // Clear the dropdown
+
+    let matchedSkills = skills.filter(skill =>
+        skill.toUpperCase().includes(filter) &&
+        !selectedSkills.includes(skill)
+    );
+
+    console.log("Matched skills:", matchedSkills); // Debug log
+
+    if (matchedSkills.length === 0 && filter !== "") {
+        matchedSkills = [`Add "${inputField.value}"`];
+    }
+
+    matchedSkills.forEach(skill => {
+        const div = document.createElement("div");
+        div.textContent = skill;
+        div.onclick = function () {
+            if (skill.startsWith("Add")) {
+                const newSkill = inputField.value.trim();
+                if (newSkill && !skills.includes(newSkill)) {
+                    skills.push(newSkill);
+                }
+                if (!selectedSkills.includes(newSkill)) {
+                    selectedSkills.push(newSkill);
+                }
                 inputField.value = "";
-            }, 200);
-        }
-
-        function filterFunction() {
-            const filter = inputField.value.toUpperCase();
-            dropdownContent.innerHTML = "";
-            let matchedSkills = skills.filter(
-                (skill) =>
-                    skill.toUpperCase().includes(filter) &&
-                    !selectedSkills.includes(skill)
-            );
-
-            if (matchedSkills.length === 0 && filter !== "") {
-                matchedSkills = [`Add "${inputField.value}"`];
+                updateSelectedSkills();
+            } else {
+                if (!selectedSkills.includes(skill)) {
+                    selectedSkills.push(skill);
+                }
+                inputField.value = "";
+                updateSelectedSkills();
             }
+            dropdownContent.classList.remove("show");
+        };
+        dropdownContent.appendChild(div);
+    });
 
-            matchedSkills.forEach((skill) => {
-                const div = document.createElement("div");
-                div.textContent = skill;
-                div.onclick = function () {
-                    if (skill.startsWith("Add")) {
-                        skills.push(inputField.value);
-                        selectedSkills.push(inputField.value);
-                    } else {
-                        selectedSkills.push(skill);
-                    }
-                    inputField.value = "";
-                    updateSelectedSkills();
-                    dropdownContent.classList.remove("show");
-                };
-                dropdownContent.appendChild(div);
-            });
+    dropdownContent.classList.add("show");
+}
 
-            dropdownContent.classList.add("show");
-        }
 
-        function updateSelectedSkills() {
-            inputContainer.innerHTML = "";
-            selectedSkills.forEach((skill) => {
-                const skillTag = document.createElement("div");
-                skillTag.className = "skill-tag";
-                skillTag.innerHTML = `<span>${skill}</span><button onclick="removeSkill('${skill}')">&times;</button>`;
-                inputContainer.appendChild(skillTag);
-            });
-            inputContainer.appendChild(inputField);
-            inputField.focus();
-        }
+function updateSelectedSkills() {
+    inputContainer.innerHTML = "";
+    selectedSkills.forEach((skill) => {
+        const skillTag = document.createElement("div");
+        skillTag.className = "skill-tag";
+        skillTag.innerHTML = `<span>${skill}</span><button onclick="removeSkill('${skill}')">&times;</button>`;
+        inputContainer.appendChild(skillTag);
+    });
+    inputContainer.appendChild(inputField);
+    inputField.focus();
+}
 
-        function removeSkill(skill) {
-            selectedSkills = selectedSkills.filter((s) => s !== skill);
-            updateSelectedSkills();
-        }
+// Remove a skill
+function removeSkill(skill) {
+    selectedSkills = selectedSkills.filter((s) => s !== skill);
+    updateSelectedSkills();
+}
 
-        function focusInput() {
-            inputField.focus();
-        }
+// Focus the input field
+function focusInput() {
+    inputField.focus();
+}
+
+// Initialize the display with existing skills
+updateSelectedSkills();
+
 
       //sidebar
       const sidebar = document.getElementById("default-sidebar");

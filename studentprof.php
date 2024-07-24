@@ -1,7 +1,7 @@
 <?php
 include 'db.php'; 
 session_start();
-$userId = $_SESSION['userId']; 
+$userId = $_SESSION['user_id'];
 
 $sql = "SELECT * FROM user WHERE UserId = ?";
 $stmt = $conn->prepare($sql);
@@ -15,9 +15,8 @@ $sql = "SELECT * FROM documents WHERE UserId = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $userId);
 $stmt->execute();
+$documents = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-$documents = $stmt->get_result()->fetch_all(MYSQLI_ASSOC); 
- 
 
 $sql = "SELECT * FROM student WHERE UserId = ?";
 $stmt = $conn->prepare($sql);
@@ -26,12 +25,20 @@ $stmt->execute();
 $result = $stmt->get_result();
 $student = $result->fetch_assoc(); 
 
-
+// Fetch skills from the database
 $sql = "SELECT skillname FROM skills WHERE UserId = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $userId);
 $stmt->execute();
-$skills = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$skillsResult = $stmt->get_result();
+
+
+if ($skillsResult->num_rows > 0) {
+    $skills = $skillsResult->fetch_all(MYSQLI_ASSOC);
+} else {
+    $skills = []; // No skills found
+}
+
 
 $sql = "SELECT * FROM location WHERE UserId = ?";
 $stmt = $conn->prepare($sql);
@@ -41,10 +48,47 @@ $result = $stmt->get_result();
 $location = $result->fetch_assoc();
 
 
+$firstname = isset($user['firstName']) ? htmlspecialchars($user['firstName']) : '';
+$middlename = isset($user['MiddleName']) ? htmlspecialchars($user['MiddleName']) : '';
+$lastname = isset($user['LastName']) ? htmlspecialchars($user['LastName']) : '';
+$fullname = trim($firstname . ' ' . $middlename . ' ' . $lastname);
+
+$photo = isset($student['photo']) ? 'uploads/' . htmlspecialchars($student['photo']) : '';
+$photoPath = 'uploads/' . $photo;
+
+$street = isset($location['Street']) ? htmlspecialchars($location['Street']) : '';
+$barangay = isset($location['Barangay']) ? htmlspecialchars($location['Barangay']) : '';
+$city = isset($location['City']) ? htmlspecialchars($location['City']) : '';
+$province = isset($location['Province']) ? htmlspecialchars($location['Province']) : '';
+$location = trim($street . ',' . $barangay . ', ' . $city . ', ' . $province);
+
+$course = isset($student['course']) ? htmlspecialchars($student['course']) : '';
+$section = isset($student['section']) ? htmlspecialchars($student['section']) : '';
+$studentNo = isset($student['StudentNo']) ? htmlspecialchars($student['StudentNo']) : '';
+$dob = isset($student['DoB']) ? htmlspecialchars($student['DoB']) : '';
+$phoneNo = isset($student['phoneNo']) ? htmlspecialchars($student['phoneNo']) : '';
+$experience = isset($student['Experience']) ? htmlspecialchars($student['Experience']) : '';
+$aboutMe = isset($student['AboutMe']) ? htmlspecialchars($student['AboutMe']) : '';
+
+$emailAddress = isset($user['EmailAddress']) ? htmlspecialchars($user['EmailAddress']) : '';
+$coursec = trim($course . ' - ' . $section);
+
+
+$documentLabels = [
+    'resume' => 'Resume',
+    'cor' => 'Certificate of Registration',
+    'pdos' => 'Certificate of Participation (PDOS)',
+    'asit' => 'Application for Supervised Industrial Training',
+    'ojtpi' => 'On - the - Job Training Program and Information Sheet',
+    'wpf' => 'Waiver and Permission Form (Notarized)',
+    'suc' => 'Student/University Contract (Notarized)',
+    'per' => 'Physiological Evaluation Result',
+    'mr' => 'Medical Result'
+];
+
 $stmt->close();
 $conn->close();
 ?>
-
 
 
 
@@ -363,34 +407,29 @@ $conn->close();
         class="lg:col-span-3 custom-shadow lg:row-span-1 flex flex-row mx-auto rounded-md w-[350px] min-h-20 lg:w-full lg:min-h-40 bg-profcard shadow-black lg:items-center"
       >
         <div class="w-[20%] flex items-center justify-center">
-         <img name="photo" id="photo" src="<?php echo htmlspecialchars($student['photo']); ?>" alt="Profile Photo" class="w-[53px] h-[50px] lg:w-[135px] lg:h-[130px] object-cover" />
+         <img name="photo" id="photo" src="<?php echo $photo; ?>" alt="Profile Photo" class="w-[53px] h-[50px] lg:w-[135px] lg:h-[130px] object-cover" />
         </div>
         <div class="flex flex-col w-[50%] gap-2">
           <div>
-            <h1 class="font-semibold lg:text-3xl"><?php if (isset($user['firstName'], $user['MiddleName'], $user['LastName'])) {
-    echo htmlspecialchars($user['firstName'] . ' ' . $user['MiddleName'] . ' ' . $user['LastName']);
-}
- ?></h1>
-           <p class="text-xs lg:text-xl">
-    <?php echo htmlspecialchars($user['course']) . ' -4 ' . htmlspecialchars($user['section']); ?>
-</p>
+            <h1 class="font-semibold lg:text-3xl"><?php echo $fullname; ?></h1>
+           <p class="text-xs lg:text-xl"><?php echo $coursec; ?></p>
 
           </div>
           <div class="">
             <p class="text-[10px] font-light lg:text-xl">Address</p>
             <p class="text-[8px] font-medium lg:text-xl">
-              Aduas Sur, Cabanatuan City, Nueva Ecija
+             <?php echo $location; ?>
             </p>
           </div>
         </div>
         <div class="flex flex-col justify-center gap-2 w-[30%]">
           <div class="flex flex-col">
             <p class="text-[10px] font-light lg:text-xl">Phone</p>
-            <p class="text-[8px] font-medium lg:text-xl">+639511018949</p>
+            <p class="text-[8px] font-medium lg:text-xl"><?php echo $phoneNo; ?></p>
           </div>
           <div class="flex flex-col">
             <p class="text-[10px] font-light lg:text-xl">Email Address</p>
-            <p class="text-[8px] font-medium lg:text-xl">clarence@gmail.com</p>
+            <p class="text-[8px] font-medium lg:text-xl"><?php echo $emailAddress; ?></p>
           </div>
         </div>
       </div>
@@ -400,57 +439,28 @@ $conn->close();
       >
         <h3 class="text-[0.75rem] font-semibold lg:text-2xl">About me</h3>
         <p class="text-[0.625rem] lg:text-xl">
-          Lorem ipsum dolor sit amet consectetur, adipisicing elit. A quae
-          voluptatibus repellat delectus consectetur eaque libero unde iste,
-          autem labore ea, quod numquam aliquid nobis non, neque aperiam ullam.
-          Ex.
+      <?php echo $aboutMe; ?>
         </p>
       </div>
 
       <div
         class="custom-shadow lg:col-span-1 lg:row-span-1 rounded-md w-[350px] lg:w-full mx-auto min-h-24 bg-profcard shadow-black p-2"
       >
-        <h3 class="text-[0.75rem] font-semibold lg:text-2xl">Skills</h3>
-        <div class="flex flex-wrap w-full gap-2">
-          <div
-            class="bg-button h-6 lg:h-8 rounded flex items-center justify-center px-2"
-          >
-            <p class="text-center text-white text-xs lg:text-xl">Front-End</p>
-          </div>
-          <div
-            class="bg-button h-6 lg:h-8 rounded flex items-center justify-center px-2"
-          >
-            <p class="text-center text-white text-xs lg:text-xl">Back-End</p>
-          </div>
-          <div
-            class="bg-button h-6 lg:h-8 rounded flex items-center justify-center px-2"
-          >
-            <p class="text-center text-white text-xs lg:text-xl">MySQL</p>
-          </div>
-          <div
-            class="bg-button h-6 lg:h-8 rounded col-span-2 flex items-center justify-center px-2"
-          >
-            <p class="text-center text-white text-xs lg:text-xl">
-              Communication
-            </p>
-          </div>
-          <div
-            class="bg-button h-6lg:h-8 rounded flex items-center justify-center px-2"
-          >
-            <p class="text-center text-white text-xs lg:text-xl">Frameworks</p>
-          </div>
-          <div
-            class="bg-button h-6 lg:h-8 rounded flex items-center justify-center px-2"
-          >
-            <p class="text-center text-white text-xs lg:text-xl">
-              Fast Learner
-            </p>
-          </div>
-          <div
-            class="bg-button h-6 lg:h-8 rounded flex items-center justify-center px-2"
-          >
-            <p class="text-center text-white text-xs lg:text-xl">Node.js</p>
-          </div>
+    <h3 class="text-[0.75rem] font-semibold lg:text-2xl">Skills</h3>
+<div class="flex flex-wrap w-full gap-2">
+  <?php if (isset($skills) && !empty($skills)): ?>
+    <?php foreach ($skills as $skill): ?>
+      <?php $skillName = htmlspecialchars($skill['skillname']); ?>
+      <div class="bg-button h-6 lg:h-8 rounded flex items-center justify-center px-2">
+        <p class="text-center text-white text-xs lg:text-xl"><?php echo $skillName; ?></p>
+      </div>
+    <?php endforeach; ?>
+  <?php else: ?>
+    <p>No skills available.</p>
+  <?php endif; ?>
+</div>
+ 
+       
         </div>
       </div>
 
@@ -459,7 +469,7 @@ $conn->close();
       >
         <h3 class="text-[0.75rem] font-semibold lg:text-2xl">Experience</h3>
         <div class="flex flex-row gap-2 lg:text-xl">
-          <p>Freelancing 2022-2024</p>
+          <p><?php echo $experience; ?> </p>
         </div>
       </div>
 
@@ -467,11 +477,50 @@ $conn->close();
         class="custom-shadow lg:col-span-2 lg:row-span-1 rounded-md w-[350px] lg:w-full mx-auto min-h-24 bg-profcard shadow-black p-2"
       >
         <h3 class="text-[0.75rem] font-semibold lg:text-2xl">Documents</h3>
-        <div class="flex flex-col gap-2">
-          <div class="flex flex-row gap-2">
-            <label for="" class="text-[10px] lg:text-xl">Resume:</label>
+          <div class="flex flex-col gap-2">
+            <div class="flex flex-col gap-2">
+            <?php if (isset($documents) && !empty($documents)): ?>
+                <?php
+                // Track displayed documents to avoid duplication
+                $displayedTypes = [];
+                foreach ($documents as $document):
+                    $filename = isset($document['fileName']) ? htmlspecialchars($document['fileName']) : '';
+                    $type = pathinfo($filename, PATHINFO_FILENAME); // Use filename without extension for type
+                    
+                    // Skip if no filename or type
+                    if (!$filename || !$type) continue;
+                    
+                    // Ensure the type matches one of the document labels
+                    if (isset($documentLabels[$type]) && !in_array($type, $displayedTypes)):
+                        $displayedTypes[] = $type; // Track displayed document types
+                        $label = $documentLabels[$type];
+                        ?>
+                        <div class="flex flex-row gap-2">
+                            <label for="<?php echo htmlspecialchars($type); ?>" class="text-[10px] lg:text-xl">
+                                <?php echo $label; ?>:
+                            </label>
+                            <a
+                                href="uploads\documents<?php echo $filename; ?>"
+                                download
+                                class="inline-block px-6 py-1 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-button border border-transparent rounded-lg hover:bg-button-dark focus:outline-none focus:shadow-outline"
+                            >Download</a>
+                        </div>
+                        <?php
+                    endif;
+                endforeach;
+                ?>
+            <?php else: ?>
+                <p>No documents available.</p>
+            <?php endif; ?>
+        </div>
+
+
+
+          <!-- <div class="flex flex-row gap-2">
+            <label for="resume" class="text-[10px] lg:text-xl">Resume:</label>
             <a
               href=""
+              name="resume"
               download
               class="inline-block px-6 py-1 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-button border border-transparent rounded-lg hover:bg-button-dark focus:outline-none focus:shadow-outline"
               >Download</a
@@ -479,10 +528,11 @@ $conn->close();
             <a href=""></a>
           </div>
           <div class="flex flex-row gap-2">
-            <label for="" class="text-[10px] lg:text-xl"
+            <label for="cor" class="text-[10px] lg:text-xl"
               >Certificate of Registration:</label
             >
             <a
+            name="cor"
               href=""
               download
               class="inline-block px-6 py-1 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-button border border-transparent rounded-lg hover:bg-button-dark focus:outline-none focus:shadow-outline"
@@ -491,11 +541,12 @@ $conn->close();
             <a href=""></a>
           </div>
           <div class="flex flex-row gap-2">
-            <label for="" class="text-[10px] lg:text-xl"
+            <label for="pdos" class="text-[10px] lg:text-xl"
               >Certificate of Participation (PDOS):</label
             >
             <a
               href=""
+              name="pdos"
               download
               class="inline-block px-6 py-1 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-button border border-transparent rounded-lg hover:bg-button-dark focus:outline-none focus:shadow-outline"
               >Download</a
@@ -503,11 +554,12 @@ $conn->close();
             <a href=""></a>
           </div>
           <div class="flex flex-row gap-2">
-            <label for="" class="text-[10px] lg:text-xl"
+            <label for="asit" class="text-[10px] lg:text-xl"
               >Application for Supervised Industrial Training:</label
             >
             <a
               href=""
+              name="asit"
               download
               class="inline-block px-6 py-1 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-button border border-transparent rounded-lg hover:bg-button-dark focus:outline-none focus:shadow-outline"
               >Download</a
@@ -515,10 +567,11 @@ $conn->close();
             <a href=""></a>
           </div>
           <div class="flex flex-row gap-2">
-            <label for="" class="text-[10px] lg:text-xl"
+            <label for="ojtpi" class="text-[10px] lg:text-xl"
               >On - the - Job Training Program and Information Sheet:</label
             >
             <a
+            name="ojtpi"
               href=""
               download
               class="inline-block px-6 py-1 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-button border border-transparent rounded-lg hover:bg-button-dark focus:outline-none focus:shadow-outline"
@@ -527,10 +580,11 @@ $conn->close();
             <a href=""></a>
           </div>
           <div class="flex flex-row gap-2">
-            <label for="" class="text-[10px] lg:text-xl"
+            <label for="wpf" class="text-[10px] lg:text-xl"
               >Waiver and Permission Form (Notarized):</label
             >
             <a
+            name="wpf"
               href=""
               download
               class="inline-block px-6 py-1 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-button border border-transparent rounded-lg hover:bg-button-dark focus:outline-none focus:shadow-outline"
@@ -539,10 +593,11 @@ $conn->close();
             <a href=""></a>
           </div>
           <div class="flex flex-row gap-2">
-            <label for="" class="text-[10px] lg:text-xl"
+            <label for="suc" class="text-[10px] lg:text-xl"
               >Student/University Contract (Notarized):</label
             >
             <a
+            name="suc"
               href=""
               download
               class="inline-block px-6 py-1 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-button border border-transparent rounded-lg hover:bg-button-dark focus:outline-none focus:shadow-outline"
@@ -551,10 +606,11 @@ $conn->close();
             <a href=""></a>
           </div>
           <div class="flex flex-row gap-2">
-            <label for="" class="text-[10px] lg:text-xl"
+            <label for="per" class="text-[10px] lg:text-xl"
               >Physiological Evaluation Result:</label
             >
             <a
+            name="per"
               href=""
               download
               class="inline-block px-6 py-1 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-button border border-transparent rounded-lg hover:bg-button-dark focus:outline-none focus:shadow-outline"
@@ -563,15 +619,16 @@ $conn->close();
             <a href=""></a>
           </div>
           <div class="flex flex-row gap-2">
-            <label for="" class="text-[10px] lg:text-xl">Medical Result:</label>
+            <label for="mr" class="text-[10px] lg:text-xl">Medical Result:</label>
             <a
+            name="mr"
               href=""
               download
               class="inline-block px-6 py-1 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-button border border-transparent rounded-lg hover:bg-button-dark focus:outline-none focus:shadow-outline"
               >Download</a
             >
             <a href=""></a>
-          </div>
+          </div> -->
         </div>
       </div>
     </main>

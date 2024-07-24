@@ -16,19 +16,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         exit();
     }
 
-
     $stmt = $conn->prepare("SELECT u.UserId, u.firstName, u.middleName, u.lastName, u.emailAddress, u.password, 
-                                   (SELECT 'student' FROM student s WHERE s.UserId = u.UserId) AS user_role_student,
-                                   (SELECT 'company' FROM company c WHERE c.UserId = u.UserId) AS user_role_company,
-                                   (SELECT 'coordinator' FROM coordinator co WHERE co.UserId = u.UserId) AS user_role_coordinator
+                                   s.StudentId, c.CompanyId, co.CoordinatorId
                             FROM user u
+                            LEFT JOIN student s ON s.UserId = u.UserId
+                            LEFT JOIN company c ON c.UserId = u.UserId
+                            LEFT JOIN coordinator co ON co.UserId = u.UserId
                             WHERE u.emailAddress = ?");
     $stmt->bind_param("s", $email);
     $stmt->execute();
     $stmt->store_result();
 
     if ($stmt->num_rows > 0) {
-        $stmt->bind_result($user_id, $firstname, $middlename, $lastname, $email, $hashed_password, $role_student, $role_company, $role_coordinator);
+        $stmt->bind_result($user_id, $firstname, $middlename, $lastname, $email, $hashed_password, $studentId, $companyId, $coordinatorId);
         $stmt->fetch();
 
         if (password_verify($password, $hashed_password)) {
@@ -36,17 +36,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION['firstname'] = $firstname;
             $_SESSION['email'] = $email;
 
-
-
-
-
-            if ($role_student === 'student') {
+            if ($studentId) {
+                $_SESSION['StudentId'] = $studentId;
                 $_SESSION['user_type'] = 'student';
-                header("Location: edit-prof.php");
-            } elseif ($role_company === 'company') {
+                header("Location: studentprof.php");
+            } elseif ($companyId) {
+                $_SESSION['CompanyId'] = $companyId;
                 $_SESSION['user_type'] = 'company';
                 header("Location: ./company/dashboard.php");
-            } elseif ($role_coordinator === 'coordinator') {
+            } elseif ($coordinatorId) {
+                $_SESSION['CoordinatorId'] = $coordinatorId;
                 $_SESSION['user_type'] = 'coordinator';
                 header("Location: ./coordinator/job.php");
             } else {
@@ -63,6 +62,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $conn->close();
 }
 ?>
+
 
 
 <!DOCTYPE html>
