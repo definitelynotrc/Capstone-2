@@ -2,8 +2,17 @@
 session_start();
 include 'db.php';
 
+
 function sanitize_input($data) {
     return htmlspecialchars(stripslashes(trim($data)));
+}
+
+function validate_email($email) {
+    return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
+}
+
+function validate_password($password) {
+    return !empty($password);
 }
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -11,57 +20,71 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email = sanitize_input($_POST['email']);
     $password = sanitize_input($_POST['pw']);
 
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        echo "Invalid email format";
+    $errors = [];
+
+    if (!validate_email($email)) {
+        $errors[] = "Invalid email format";
+    }
+
+    if (!validate_password($password)) {
+        $errors[] = "Password cannot be empty";
+    }
+
+    if (empty($errors)) {
+        $stmt = $conn->prepare("SELECT u.UserId, u.firstName, u.emailAddress, u.password, 
+                                       s.StudentId, c.CompanyId, co.CoordinatorId
+                                FROM user u
+                                LEFT JOIN student s ON s.UserId = u.UserId
+                                LEFT JOIN company c ON c.UserId = u.UserId
+                                LEFT JOIN coordinator co ON co.UserId = u.UserId
+                                WHERE u.emailAddress = ?");
+        $stmt->bind_param("s", $email);
+        $stmt->execute();
+        $stmt->store_result();
+
+        if ($stmt->num_rows > 0) {
+            $stmt->bind_result($user_id, $firstname, $email, $hashed_password, $studentId, $companyId, $coordinatorId);
+            $stmt->fetch();
+
+            if (password_verify($password, $hashed_password)) {
+                $_SESSION['user_id'] = $user_id;
+                $_SESSION['firstname'] = $firstname;
+                $_SESSION['email'] = $email;
+
+                if ($studentId) {
+                    $_SESSION['StudentId'] = $studentId;
+                    $_SESSION['user_type'] = 'student';
+                    header("Location: studentprof.php");
+                } elseif ($companyId) {
+                    $_SESSION['CompanyId'] = $companyId;
+                    $_SESSION['user_type'] = 'company';
+                    header("Location: ./company/jobposting.php");
+                } elseif ($coordinatorId) {
+                    $_SESSION['CoordinatorId'] = $coordinatorId;
+                    $_SESSION['user_type'] = 'coordinator';
+                    header("Location: ./coordinator/job.php");
+                } else {
+                    $errors[] = "User role not found";
+                }
+            } else {
+                $errors[] = "Invalid email or password";
+            }
+        } else {
+            $errors[] = "Invalid email or password";
+        }
+        $stmt->close();
+    }
+    $conn->close();
+
+    if (!empty($errors)) {
+        $_SESSION['errors'] = $errors;
+        header("Location: studentprof.php");
         exit();
     }
-
-    $stmt = $conn->prepare("SELECT u.UserId, u.firstName, u.middleName, u.lastName, u.emailAddress, u.password, 
-                                   s.StudentId, c.CompanyId, co.CoordinatorId
-                            FROM user u
-                            LEFT JOIN student s ON s.UserId = u.UserId
-                            LEFT JOIN company c ON c.UserId = u.UserId
-                            LEFT JOIN coordinator co ON co.UserId = u.UserId
-                            WHERE u.emailAddress = ?");
-    $stmt->bind_param("s", $email);
-    $stmt->execute();
-    $stmt->store_result();
-
-    if ($stmt->num_rows > 0) {
-        $stmt->bind_result($user_id, $firstname, $middlename, $lastname, $email, $hashed_password, $studentId, $companyId, $coordinatorId);
-        $stmt->fetch();
-
-        if (password_verify($password, $hashed_password)) {
-            $_SESSION['user_id'] = $user_id;
-            $_SESSION['firstname'] = $firstname;
-            $_SESSION['email'] = $email;
-
-            if ($studentId) {
-                $_SESSION['StudentId'] = $studentId;
-                $_SESSION['user_type'] = 'student';
-                header("Location: studentprof.php");
-            } elseif ($companyId) {
-                $_SESSION['CompanyId'] = $companyId;
-                $_SESSION['user_type'] = 'company';
-                header("Location: ./company/dashboard.php");
-            } elseif ($coordinatorId) {
-                $_SESSION['CoordinatorId'] = $coordinatorId;
-                $_SESSION['user_type'] = 'coordinator';
-                header("Location: ./coordinator/job.php");
-            } else {
-                echo "User role not found";
-            }
-            exit();
-        } else {
-            echo "Invalid email or password";
-        }
-    } else {
-        echo "Invalid email or password";
-    }
-    $stmt->close();
-    $conn->close();
 }
 ?>
+
+
 
 
 
@@ -202,24 +225,44 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </div>
         <form action="" method="post" class="flex flex-col items-center lg:w-[30%] gap-4">
           <h1 class="text-2xl font-bold lg:text-4xl">Welcome Back!</h1>
-          <div class="w-[200px] h-[40px] flex flex-col lg:w-full lg:h-[55px]">
-            <label for="" class="text-sm font-medium">Email address</label
-            ><input
-              type="email"
-              name="email"
-              class="custom-border w-full h-full"
-            />
-          </div>
-          <div class="w-[200px] h-[40px] flex flex-col lg:w-full lg:h-[55px]">
-            <label for="" class="text-sm font-medium">Password</label
-            ><input
-              type="password"
-              name="pw"
-              class="custom-border w-full h-full"
-            />
-          </div>
-          <button type="submit" class="font-semibold bg-fontColor w-[150px] lg:w-[300px] text-white py-2 rounded-md hover:bg-gray-700 transition duration-200 ease-in-out">Log In</button>
-          <div class="mt-4 flex flex-col items-center gap-2">
+   <?php if (isset($_SESSION['errors'])): ?>
+                <div class="text-red-500">
+                    <?php foreach ($_SESSION['errors'] as $error): ?>
+                        <p><?php echo htmlspecialchars($error); ?></p>
+                    <?php endforeach; ?>
+                </div>
+                <?php unset($_SESSION['errors']); ?>
+            <?php endif; ?>
+
+
+<div class="w-[200px] h-[40px] flex flex-col lg:w-full lg:h-[55px] relative">
+  <label for="email" class="text-sm font-medium">Email address</label>
+  <input
+    type="email"
+    name="email"
+    id="email"
+    class="custom-border w-full h-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+  />
+  <span id="emailError" class="text-red-500 text-xs mt-1 hidden">Invalid email address</span>
+</div>
+
+<div class="w-[200px] h-[40px] flex flex-col lg:w-full lg:h-[55px] relative">
+  <label for="password" class="text-sm font-medium">Password</label>
+  <input
+    type="password"
+    name="pw"
+    id="password"
+    class="custom-border w-full h-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+  />
+  <span id="togglePassword" class="absolute inset-y-0 right-3 top-5 flex items-center cursor-pointer">
+    <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
+  </span>
+  <span id="passwordError" class="text-red-500 text-xs mt-1 hidden">Invalid password</span>
+</div>
+
+<button type="submit" class="font-semibold bg-fontColor w-[150px] lg:w-[300px] text-white py-2 rounded-md hover:bg-gray-700 transition duration-200 ease-in-out">Log In</button>
+
+
             <span class="text-[12px]">Or sign in using</span>
 
             <svg
@@ -259,12 +302,65 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
               </defs>
             </svg>
             <span class="text-[12px] lg:text-sm">
-              Don’t have an account? <a href="" class="text-black font-bold">
+              Don’t have an account? <a href="student-signup.php" class="text-black font-bold">
                Register now!</a></span
             >
           </div>
         </form>
       </div>
     </main>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const eyeIcon = document.getElementById('eyeIcon');
+    const emailError = document.getElementById('emailError');
+    const passwordError = document.getElementById('passwordError');
+    const togglePassword = document.getElementById('togglePassword');
+    const submitButton = document.querySelector('button[type="submit"]');
+
+    let passwordVisible = false;
+
+    // Toggle password visibility
+    togglePassword.addEventListener('click', function () {
+        passwordVisible = !passwordVisible;
+        if (passwordVisible) {
+            passwordInput.type = 'text';
+            eyeIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye-off"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2.062 12.348a10.75 10.75 0 0 1 19.876 0"/><path d="M12 12a3 3 0 0 0 3 3"/></svg>`;
+        } else {
+            passwordInput.type = 'password';
+            eyeIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>`;
+        }
+    });
+
+    function validateForm() {
+        let valid = true;
+
+        if (emailInput.value.trim() === "") {
+            emailError.textContent = "Email cannot be empty";
+            emailError.classList.remove('hidden');
+            valid = false;
+        } else {
+            emailError.classList.add('hidden');
+        }
+
+        if (passwordInput.value.trim() === "") {
+            passwordError.textContent = "Password cannot be empty";
+            passwordError.classList.remove('hidden');
+            valid = false;
+        } else {
+            passwordError.classList.add('hidden');
+        }
+
+        return valid;
+    }
+
+    submitButton.addEventListener('click', function (event) {
+        if (!validateForm()) {
+            event.preventDefault();
+        }
+    });
+});
+</script>
   </body>
 </html>

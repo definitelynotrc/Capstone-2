@@ -2,87 +2,120 @@
 session_start();
 include 'db.php';
 
-
 function sanitize_input($data) {
     return htmlspecialchars(stripslashes(trim($data)));
 }
 
-
-
 $errors = [];
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-$firstname = sanitize_input($_POST['fName']);
-$middlename = sanitize_input($_POST['mName']);
-$lastname = sanitize_input($_POST['lName']);
-$companyname = sanitize_input($_POST['cmpname']);
-$email = sanitize_input($_POST['email']);
-$password = isset($_POST['pw']) ? $_POST['pw'] : '';
-$website = isset($_POST['website']) ? $_POST['website'] : '';
-$role = isset($_POST['role']) ? $_POST['role'] : '';
+    // Retrieve and sanitize input values
+    $firstname = sanitize_input($_POST['fName']);
+    $middlename = sanitize_input($_POST['mName']);
+    $lastname = sanitize_input($_POST['lName']);
+    $companyname = sanitize_input($_POST['cmpname']);
+    $email = sanitize_input($_POST['email']);
+    $password = isset($_POST['pw']) ? $_POST['pw'] : '';
+    $website = isset($_POST['website']) ? $_POST['website'] : '';
+    $role = isset($_POST['role']) ? $_POST['role'] : '';
 
-
-
-$target_dir = "uploads/";
-$moa  = $target_dir . basename($_FILES["file"]["name"]);
-$uploadOk = 1;
-$imageFileType = strtolower(pathinfo($moa, PATHINFO_EXTENSION));
-
-
-if (file_exists($moa)) {
-    echo "Sorry, file already exists.";
-    $uploadOk = 0;
-}
-
-
-if ($_FILES["file"]["size"] > 5000000) {
-    echo "Sorry, your file is too large.";
-    $uploadOk = 0;
-}
-
-
-if ($imageFileType != "pdf" && $imageFileType != "doc" && $imageFileType != "docx") {
-    echo "Sorry, only PDF, DOC & DOCX files are allowed.";
-    $uploadOk = 0;
-}
-
-
-if ($uploadOk == 0) {
-    echo "Sorry, your file was not uploaded.";
-    exit();
-
-} else {
-    if (!move_uploaded_file($_FILES["file"]["tmp_name"], $moa)) {
-        echo "Sorry, there was an error uploading your file.";
-        exit();
+    // Validate input values
+    if (empty($firstname) || empty($lastname) || empty($email) || empty($password) || empty($role)) {
+        $errors[] = "Please fill in all required fields.";
     }
-}
 
- if (empty($errors)) {
+    // Validate file upload
+    function handleFileUpload($file, $uploadDir) {
+        $subfolder = 'MoA/'; // Subfolder inside uploads
+        $targetDir = $uploadDir . $subfolder;
+
+        // Ensure the directory exists or create it
+        if (!is_dir($targetDir)) {
+            if (!mkdir($targetDir, 0777, true)) {
+                echo "Failed to create directory: " . $targetDir;
+                return false;
+            }
+        }
+
+        $file_name = basename($file["name"]);
+        $targetFile = $targetDir . $file_name;
+        $uploadOk = 1;
+        $fileType = strtolower(pathinfo($targetFile, PATHINFO_EXTENSION));
+
+        // Check if file already exists
+        if (file_exists($targetFile)) {
+            echo "Sorry, file already exists.";
+            $uploadOk = 0;
+        }
+
+        // Check file size (5MB max)
+        if ($file["size"] > 5000000) {
+            echo "Sorry, your file is too large.";
+            $uploadOk = 0;
+        }
+
+        // Allow certain file formats
+        if ($fileType != "pdf" && $fileType != "doc" && $fileType != "docx") {
+            echo "Sorry, only PDF, DOC & DOCX files are allowed.";
+            $uploadOk = 0;
+        }
+
+        // Attempt to move the uploaded file
+        if ($uploadOk == 0) {
+            echo "Sorry, your file was not uploaded.";
+            return false;
+        } else {
+            if (move_uploaded_file($file["tmp_name"], $targetFile)) {
+                return $targetFile; // Return the path to the uploaded file
+            } else {
+                echo "Sorry, there was an error uploading your file.";
+                return false;
+            }
+        }
+    }
+
+    $uploadDir = 'uploads/'; // Base directory for uploads
+    $moaPath = '';
+
+    if (isset($_FILES['file']) && $_FILES['file']['error'] == 0) {
+        $moaPath = handleFileUpload($_FILES['file'], $uploadDir);
+        if ($moaPath === false) {
+            echo "Failed to upload file.";
+            exit; // Exit to prevent further processing
+        } else {
+            // Proceed with the rest of your code
+            echo "File successfully uploaded to: " . $moaPath;
+        }
+    } elseif (empty($moaPath)) {
+        $errors[] = "No file uploaded or there was an upload error.";
+    }
+
+    // If there are no errors, proceed with database operations
+    if (empty($errors)) {
         $hashed_password = password_hash($password, PASSWORD_BCRYPT);
 
         $conn->begin_transaction();
         try {
-      
             $stmt = $conn->prepare("INSERT INTO user (firstName, middleName, lastName, EmailAddress, userRole, password) VALUES (?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("ssssss", $firstname, $middlename, $lastname, $email, $role,  $hashed_password);
+            $stmt->bind_param("ssssss", $firstname, $middlename, $lastname, $email, $role, $hashed_password);
 
             if ($stmt->execute()) {
                 $user_id = $stmt->insert_id;
 
-            
-                $stmt_student = $conn->prepare("INSERT INTO company (userId, CompanyName, Website , Moa ) VALUES (?, ?, ?, ?)");
-                $stmt_student->bind_param("isss", $user_id, $companyname, $website, $moa);
+                $stmt_company = $conn->prepare("INSERT INTO company (userId, CompanyName, Website, MoA) VALUES (?, ?, ?, ?)");
+                $stmt_company->bind_param("isss", $user_id, $companyname, $website, $moaPath);
 
-                if ($stmt_student->execute()) {
+                if ($stmt_company->execute()) {
                     $conn->commit();
                     echo "Registration successful!";
+                    header('Location: login.php');
+                    exit; // Exit after redirect
                 } else {
                     $conn->rollback();
-                    echo "Error: " . $stmt_student->error;
+                    echo "Error: " . $stmt_company->error;
                 }
 
-                $stmt_student->close();
+                $stmt_company->close();
             } else {
                 $conn->rollback();
                 echo "Error: " . $stmt->error;
@@ -100,8 +133,9 @@ if ($uploadOk == 0) {
             echo $error . "<br>";
         }
     }
-  }
+}
 ?>
+
 
 
 <!DOCTYPE html>
@@ -138,6 +172,11 @@ if ($uploadOk == 0) {
       };
     </script>
     <style>
+           .error {
+            color: red;
+            display: block;
+            margin: 5px 0;
+        }
       .sidebar {
         transform: translateX(100%);
       }
@@ -366,6 +405,7 @@ if ($uploadOk == 0) {
             >
           </div>
         </form>
+        
       </main>
       <script src="burgermenu.js"></script>
     </body>

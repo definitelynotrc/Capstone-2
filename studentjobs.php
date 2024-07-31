@@ -1,3 +1,78 @@
+<?php 
+include 'db.php';
+session_start();
+$userId = $_SESSION['user_id'];
+$companyId = $_SESSION['CompanyId'];
+
+echo $companyId;
+// Fetch company details
+$stmt = $conn->prepare("SELECT * FROM Company WHERE CompanyId = ?");
+$stmt->bind_param("i", $companyId);
+$stmt->execute();
+$result = $stmt->get_result();
+$company = $result->fetch_assoc();
+$stmt->close();
+
+// Fetch location details
+$stmt = $conn->prepare("SELECT * FROM location WHERE LocationId = ?");
+$stmt->bind_param("i", $company['LocationId']);
+$stmt->execute();
+$result = $stmt->get_result();
+$location = $result->fetch_assoc();
+$stmt->close();
+
+// Fetch all job listings for the company
+$stmt = $conn->prepare("SELECT * FROM job WHERE CompanyId = ?");
+$stmt->bind_param("i", $companyId);
+$stmt->execute();
+$jobsResult = $stmt->get_result(); // Renamed to $jobsResult to avoid confusion
+$stmt->close();
+
+if ($jobsResult && $jobsResult->num_rows > 0) {
+    // Print out the fetched job data for debugging
+    while ($job = $jobsResult->fetch_assoc()) {
+        echo '<pre>';
+        print_r($job); // Debugging output
+        echo '</pre>';
+    }
+} else {
+    echo "<p>No job listings found.</p>";
+}
+
+// Fetch skills for the user
+$sql = "SELECT skillId FROM skillset WHERE UserId = ?";
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $userId);
+$stmt->execute();
+$skillIdsResult = $stmt->get_result();
+$skillIds = $skillIdsResult->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
+
+$skills = [];
+if (count($skillIds) > 0) {
+  foreach ($skillIds as $skillId) {
+    $sql = "SELECT skillName FROM skills WHERE skillId = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $skillId['skillId']);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $skill = $result->fetch_assoc();
+
+    $skills[] = $skill['skillName']; // Store skill names, not full skill arrays
+    $stmt->close();
+  }
+}
+
+// Initialize variables with default values
+$companyName = isset($company['CompanyName']) ? $company['CompanyName'] : '';
+$companyLogo = isset($company['CompanyLogo']) ? $company['CompanyLogo'] : '';
+$website = isset($company['Website']) ? $company['Website'] : '';
+$description = isset($company['Description']) ? $company['Description'] : '';
+$skillsList = !empty($skills) ? implode(', ', $skills) : ''; // Convert skills array to a comma-separated string
+?>
+
+
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -10,7 +85,7 @@
       href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap"
       rel="stylesheet"
     />
-    <link rel="icon" href="./img/Group 236.svg" type="image/x-icon" />
+c
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -350,1387 +425,71 @@
           <path d="m21 21-4.3-4.3" />
         </svg>
       </div>
-      <div
-        class="max-w-[1920px] w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 items-center justify-evenly mx-auto"
-      >
-        <div class="w-full min-h-44 rounded-lg card flex flex-col gap-1 p-1">
-          <div id="" class="colorCard flex flex-col gap-2 card p-2 rounded-md">
-            <div class="flex flex-row items-center justify-center">
-              <div class="flex flex-col w-[80%]">
-                <span class="text-xs">LinkedIn</span>
-                <h1 class="text-lg font-semibold lg:text-xl">UI/UX Designer</h1>
-              </div>
-              <div class="w-[20%] flex items-center">
-                <img
-                  src="./img/LinkedIn_logo_initials.png"
-                  alt=""
-                  class="w-[40px] h-[40px] rounded-full"
-                />
-              </div>
+         <div class="max-w-[1920px] w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 items-center justify-evenly mx-auto">
+                <?php
+                // Check if the query returned any results
+                if ($jobsResult->num_rows > 0) {
+                    while ($job = $jobsResult->fetch_assoc()) {
+                        ?>
+                        <div class="w-full min-h-44 rounded-lg card flex flex-col gap-1 p-1">
+                            <div id="" class="colorCard flex flex-col gap-2 card p-2 rounded-md">
+                                <div class="flex flex-row items-center justify-center">
+                                    <div class="flex flex-col w-[80%]">
+                                        <span name='CompanyName' class="text-xs"><?php echo htmlspecialchars($company['CompanyName']); ?></span>
+                                        <h1 name="Position" class="text-lg font-semibold lg:text-xl"><?php echo htmlspecialchars($job['Position']); ?></h1>
+                                    </div>
+                                    <div class="w-[20%] flex items-center">
+                                        <img src="/uploads/company_logos/<?php echo htmlspecialchars($company['CompanyLogo']); ?>" alt="<?php echo htmlspecialchars($company['CompanyName']); ?>" class="w-[40px] h-[40px] rounded-full"/>
+                                    </div>
+                                </div>
+                                <div class="flex flex-row justify-between">
+                                    <div class="">
+                                        <ul class="flex flex-col gap-1">
+                                            <li class="flex flex-row items-center gap-1">
+                                                <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <g clip-path="url(#clip0_113_107)">
+                                                        <path d="M3 11V2C3 1.73478 3.10536 1.48043 3.29289 1.29289C3.48043 1.10536 3.73478 1 4 1H8C8.26522 1 8.51957 1.10536 8.70711 1.29289C8.89464 1.48043 9 1.73478 9 2V11H3Z" stroke="black" stroke-width="0.666667" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        <path d="M5 6.5H7" stroke="black" stroke-width="0.666667" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        <path d="M5 8H7" stroke="black" stroke-width="0.666667" stroke-linecap="round" stroke-linejoin="round"/>
+                                                    </g>
+                                                    <defs>
+                                                        <clipPath id="clip0_113_107">
+                                                            <rect width="12" height="12" fill="white"/>
+                                                        </clipPath>
+                                                    </defs>
+                                                </svg>
+                                                <span class="text-xs"><?php echo htmlspecialchars($job['JobType']); ?></span>
+                                            </li>
+                                            <li class="flex flex-row items-center gap-1">
+                                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                    <g clip-path="url(#clip0_113_108)">
+                                                        <path d="M11.6666 4.33333L9.66663 6.33333L7.66663 4.33333L6.66663 5.33333L8.66663 7.33333L10.6666 5.33333L11.6666 4.33333Z" stroke="black" stroke-width="0.666667" stroke-linecap="round" stroke-linejoin="round"/>
+                                                        <path d="M5.66663 9.33333L7.66663 7.33333L9.66663 9.33333L10.6666 8.33333L8.66663 6.33333L6.66663 8.33333L5.66663 9.33333Z" stroke="black" stroke-width="0.666667" stroke-linecap="round" stroke-linejoin="round"/>
+                                                    </g>
+                                                    <defs>
+                                                        <clipPath id="clip0_113_108">
+                                                            <rect width="14" height="14" fill="white"/>
+                                                        </clipPath>
+                                                    </defs>
+                                                </svg>
+                                                <span class="text-xs"><?php echo htmlspecialchars($job['Salary']); ?></span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                    <div class="">
+                                        <a href="view_job.php?job_id=<?php echo htmlspecialchars($job['JobId']); ?>" class="view px-2 py-1 rounded-md">View</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <?php
+                    }
+                } else {
+                    echo "<p>No job listings available.</p>";
+                }
+                ?>
             </div>
-            <div class="flex flex-row justify-between">
-              <div class="">
-                <ul class="flex flex-col gap-1">
-                  <li class="flex flex-row items-center gap-1">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <g clip-path="url(#clip0_113_107)">
-                        <path
-                          d="M3 11V2C3 1.73478 3.10536 1.48043 3.29289 1.29289C3.48043 1.10536 3.73478 1 4 1H8C8.26522 1 8.51957 1.10536 8.70711 1.29289C8.89464 1.48043 9 1.73478 9 2V11H3Z"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M3 6H2C1.73478 6 1.48043 6.10536 1.29289 6.29289C1.10536 6.48043 1 6.73478 1 7V10C1 10.2652 1.10536 10.5196 1.29289 10.7071C1.48043 10.8946 1.73478 11 2 11H3"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M9 4.5H10C10.2652 4.5 10.5196 4.60536 10.7071 4.79289C10.8946 4.98043 11 5.23478 11 5.5V10C11 10.2652 10.8946 10.5196 10.7071 10.7071C10.5196 10.8946 10.2652 11 10 11H9"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 3H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 5H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 7H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 9H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                      </g>
-                      <defs>
-                        <clipPath id="clip0_113_107">
-                          <rect width="12" height="12" fill="white" />
-                        </clipPath>
-                      </defs>
-                    </svg>
-                    <span class="font-light text-[10px] lg:text-xs"
-                      >LinkedIn</span
-                    >
-                  </li>
-                  <li class="flex flex-row items-center gap-1">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M10 5C10 8 6 11 6 11C6 11 2 8 2 5C2 3.93913 2.42143 2.92172 3.17157 2.17157C3.92172 1.42143 4.93913 1 6 1C7.06087 1 8.07828 1.42143 8.82843 2.17157C9.57857 2.92172 10 3.93913 10 5Z"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                      <path
-                        d="M6 6.5C6.82843 6.5 7.5 5.82843 7.5 5C7.5 4.17157 6.82843 3.5 6 3.5C5.17157 3.5 4.5 4.17157 4.5 5C4.5 5.82843 5.17157 6.5 6 6.5Z"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                    <span class="font-light text-[10px] lg:text-xs"
-                      >Cabanatuan City</span
-                    >
-                  </li>
-                  <li class="flex flex-row items-center gap-1">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M9.5 10.5V9.5C9.5 8.96957 9.28929 8.46086 8.91421 8.08579C8.53914 7.71071 8.03043 7.5 7.5 7.5H4.5C3.96957 7.5 3.46086 7.71071 3.08579 8.08579C2.71071 8.46086 2.5 8.96957 2.5 9.5V10.5"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                      <path
-                        d="M6 5.5C7.10457 5.5 8 4.60457 8 3.5C8 2.39543 7.10457 1.5 6 1.5C4.89543 1.5 4 2.39543 4 3.5C4 4.60457 4.89543 5.5 6 5.5Z"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                    <span class="font-light text-[10px] lg:text-xs"
-                      >2 Available</span
-                    >
-                  </li>
-                </ul>
-              </div>
-              <div class="">
-                <ul class="flex gap-1 flex-col">
-                  <li
-                    class="text-xs text-center border border-gray-800 px-0.5 rounded-lg"
-                  >
-                    Creative
-                  </li>
-                  <li
-                    class="text-xs text-center border border-gray-800 px-0.5 rounded-lg"
-                  >
-                    Figma
-                  </li>
-                  <li
-                    class="text-xs text-center border border-gray-800 px-0.5 rounded-lg"
-                  >
-                    Adobe
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-          <div class="">
-            <button
-              class="text-xs bg-black text-white py-1 px-3 rounded-md font-semibold"
-              onclick="goToDeet()"
-            >
-              Details
-            </button>
-          </div>
-        </div>
-        <div class="w-full min-h-44 rounded-lg card flex flex-col gap-1 p-1">
-          <div id="" class="colorCard flex flex-col gap-2 card p-2 rounded-md">
-            <div class="flex flex-row items-center justify-center">
-              <div class="flex flex-col w-[80%]">
-                <span class="text-xs">LinkedIn</span>
-                <h1 class="text-lg font-semibold lg:text-xl">UI/UX Designer</h1>
-              </div>
-              <div class="w-[20%] flex items-center">
-                <img
-                  src="./img/LinkedIn_logo_initials.png"
-                  alt=""
-                  class="w-[40px] h-[40px] rounded-full"
-                />
-              </div>
-            </div>
-            <div class="flex flex-row justify-between">
-              <div class="">
-                <ul class="flex flex-col gap-1">
-                  <li class="flex flex-row items-center gap-1">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <g clip-path="url(#clip0_113_107)">
-                        <path
-                          d="M3 11V2C3 1.73478 3.10536 1.48043 3.29289 1.29289C3.48043 1.10536 3.73478 1 4 1H8C8.26522 1 8.51957 1.10536 8.70711 1.29289C8.89464 1.48043 9 1.73478 9 2V11H3Z"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M3 6H2C1.73478 6 1.48043 6.10536 1.29289 6.29289C1.10536 6.48043 1 6.73478 1 7V10C1 10.2652 1.10536 10.5196 1.29289 10.7071C1.48043 10.8946 1.73478 11 2 11H3"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M9 4.5H10C10.2652 4.5 10.5196 4.60536 10.7071 4.79289C10.8946 4.98043 11 5.23478 11 5.5V10C11 10.2652 10.8946 10.5196 10.7071 10.7071C10.5196 10.8946 10.2652 11 10 11H9"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 3H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 5H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 7H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 9H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                      </g>
-                      <defs>
-                        <clipPath id="clip0_113_107">
-                          <rect width="12" height="12" fill="white" />
-                        </clipPath>
-                      </defs>
-                    </svg>
-                    <span class="font-light text-[10px] lg:text-xs"
-                      >LinkedIn</span
-                    >
-                  </li>
-                  <li class="flex flex-row items-center gap-1">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M10 5C10 8 6 11 6 11C6 11 2 8 2 5C2 3.93913 2.42143 2.92172 3.17157 2.17157C3.92172 1.42143 4.93913 1 6 1C7.06087 1 8.07828 1.42143 8.82843 2.17157C9.57857 2.92172 10 3.93913 10 5Z"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                      <path
-                        d="M6 6.5C6.82843 6.5 7.5 5.82843 7.5 5C7.5 4.17157 6.82843 3.5 6 3.5C5.17157 3.5 4.5 4.17157 4.5 5C4.5 5.82843 5.17157 6.5 6 6.5Z"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                    <span class="font-light text-[10px] lg:text-xs"
-                      >Cabanatuan City</span
-                    >
-                  </li>
-                  <li class="flex flex-row items-center gap-1">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M9.5 10.5V9.5C9.5 8.96957 9.28929 8.46086 8.91421 8.08579C8.53914 7.71071 8.03043 7.5 7.5 7.5H4.5C3.96957 7.5 3.46086 7.71071 3.08579 8.08579C2.71071 8.46086 2.5 8.96957 2.5 9.5V10.5"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                      <path
-                        d="M6 5.5C7.10457 5.5 8 4.60457 8 3.5C8 2.39543 7.10457 1.5 6 1.5C4.89543 1.5 4 2.39543 4 3.5C4 4.60457 4.89543 5.5 6 5.5Z"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                    <span class="font-light text-[10px] lg:text-xs"
-                      >2 Available</span
-                    >
-                  </li>
-                </ul>
-              </div>
-              <div class="">
-                <ul class="flex gap-1 flex-col">
-                  <li
-                    class="text-xs text-center border border-gray-800 px-0.5 rounded-lg"
-                  >
-                    Creative
-                  </li>
-                  <li
-                    class="text-xs text-center border border-gray-800 px-0.5 rounded-lg"
-                  >
-                    Figma
-                  </li>
-                  <li
-                    class="text-xs text-center border border-gray-800 px-0.5 rounded-lg"
-                  >
-                    Adobe
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-          <div class="">
-            <button
-              class="text-xs bg-black text-white py-1 px-3 rounded-md font-semibold"
-            >
-              Details
-            </button>
-          </div>
-        </div>
-        <div class="w-full min-h-44 rounded-lg card flex flex-col gap-1 p-1">
-          <div id="" class="colorCard flex flex-col gap-2 card p-2 rounded-md">
-            <div class="flex flex-row items-center justify-center">
-              <div class="flex flex-col w-[80%]">
-                <span class="text-xs">LinkedIn</span>
-                <h1 class="text-lg font-semibold lg:text-xl">UI/UX Designer</h1>
-              </div>
-              <div class="w-[20%] flex items-center">
-                <img
-                  src="./img/LinkedIn_logo_initials.png"
-                  alt=""
-                  class="w-[40px] h-[40px] rounded-full"
-                />
-              </div>
-            </div>
-            <div class="flex flex-row justify-between">
-              <div class="">
-                <ul class="flex flex-col gap-1">
-                  <li class="flex flex-row items-center gap-1">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <g clip-path="url(#clip0_113_107)">
-                        <path
-                          d="M3 11V2C3 1.73478 3.10536 1.48043 3.29289 1.29289C3.48043 1.10536 3.73478 1 4 1H8C8.26522 1 8.51957 1.10536 8.70711 1.29289C8.89464 1.48043 9 1.73478 9 2V11H3Z"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M3 6H2C1.73478 6 1.48043 6.10536 1.29289 6.29289C1.10536 6.48043 1 6.73478 1 7V10C1 10.2652 1.10536 10.5196 1.29289 10.7071C1.48043 10.8946 1.73478 11 2 11H3"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M9 4.5H10C10.2652 4.5 10.5196 4.60536 10.7071 4.79289C10.8946 4.98043 11 5.23478 11 5.5V10C11 10.2652 10.8946 10.5196 10.7071 10.7071C10.5196 10.8946 10.2652 11 10 11H9"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 3H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 5H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 7H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 9H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                      </g>
-                      <defs>
-                        <clipPath id="clip0_113_107">
-                          <rect width="12" height="12" fill="white" />
-                        </clipPath>
-                      </defs>
-                    </svg>
-                    <span class="font-light text-[10px] lg:text-xs"
-                      >LinkedIn</span
-                    >
-                  </li>
-                  <li class="flex flex-row items-center gap-1">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M10 5C10 8 6 11 6 11C6 11 2 8 2 5C2 3.93913 2.42143 2.92172 3.17157 2.17157C3.92172 1.42143 4.93913 1 6 1C7.06087 1 8.07828 1.42143 8.82843 2.17157C9.57857 2.92172 10 3.93913 10 5Z"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                      <path
-                        d="M6 6.5C6.82843 6.5 7.5 5.82843 7.5 5C7.5 4.17157 6.82843 3.5 6 3.5C5.17157 3.5 4.5 4.17157 4.5 5C4.5 5.82843 5.17157 6.5 6 6.5Z"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                    <span class="font-light text-[10px] lg:text-xs"
-                      >Cabanatuan City</span
-                    >
-                  </li>
-                  <li class="flex flex-row items-center gap-1">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M9.5 10.5V9.5C9.5 8.96957 9.28929 8.46086 8.91421 8.08579C8.53914 7.71071 8.03043 7.5 7.5 7.5H4.5C3.96957 7.5 3.46086 7.71071 3.08579 8.08579C2.71071 8.46086 2.5 8.96957 2.5 9.5V10.5"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                      <path
-                        d="M6 5.5C7.10457 5.5 8 4.60457 8 3.5C8 2.39543 7.10457 1.5 6 1.5C4.89543 1.5 4 2.39543 4 3.5C4 4.60457 4.89543 5.5 6 5.5Z"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                    <span class="font-light text-[10px] lg:text-xs"
-                      >2 Available</span
-                    >
-                  </li>
-                </ul>
-              </div>
-              <div class="">
-                <ul class="flex gap-1 flex-col">
-                  <li
-                    class="text-xs text-center border border-gray-800 px-0.5 rounded-lg"
-                  >
-                    Creative
-                  </li>
-                  <li
-                    class="text-xs text-center border border-gray-800 px-0.5 rounded-lg"
-                  >
-                    Figma
-                  </li>
-                  <li
-                    class="text-xs text-center border border-gray-800 px-0.5 rounded-lg"
-                  >
-                    Adobe
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-          <div class="">
-            <button
-              class="text-xs bg-black text-white py-1 px-3 rounded-md font-semibold"
-            >
-              Details
-            </button>
-          </div>
-        </div>
-        <div class="w-full min-h-44 rounded-lg card flex flex-col gap-1 p-1">
-          <div id="" class="colorCard flex flex-col gap-2 card p-2 rounded-md">
-            <div class="flex flex-row items-center justify-center">
-              <div class="flex flex-col w-[80%]">
-                <span class="text-xs">LinkedIn</span>
-                <h1 class="text-lg font-semibold lg:text-xl">UI/UX Designer</h1>
-              </div>
-              <div class="w-[20%] flex items-center">
-                <img
-                  src="./img/LinkedIn_logo_initials.png"
-                  alt=""
-                  class="w-[40px] h-[40px] rounded-full"
-                />
-              </div>
-            </div>
-            <div class="flex flex-row justify-between">
-              <div class="">
-                <ul class="flex flex-col gap-1">
-                  <li class="flex flex-row items-center gap-1">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <g clip-path="url(#clip0_113_107)">
-                        <path
-                          d="M3 11V2C3 1.73478 3.10536 1.48043 3.29289 1.29289C3.48043 1.10536 3.73478 1 4 1H8C8.26522 1 8.51957 1.10536 8.70711 1.29289C8.89464 1.48043 9 1.73478 9 2V11H3Z"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M3 6H2C1.73478 6 1.48043 6.10536 1.29289 6.29289C1.10536 6.48043 1 6.73478 1 7V10C1 10.2652 1.10536 10.5196 1.29289 10.7071C1.48043 10.8946 1.73478 11 2 11H3"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M9 4.5H10C10.2652 4.5 10.5196 4.60536 10.7071 4.79289C10.8946 4.98043 11 5.23478 11 5.5V10C11 10.2652 10.8946 10.5196 10.7071 10.7071C10.5196 10.8946 10.2652 11 10 11H9"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 3H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 5H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 7H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 9H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                      </g>
-                      <defs>
-                        <clipPath id="clip0_113_107">
-                          <rect width="12" height="12" fill="white" />
-                        </clipPath>
-                      </defs>
-                    </svg>
-                    <span class="font-light text-[10px] lg:text-xs"
-                      >LinkedIn</span
-                    >
-                  </li>
-                  <li class="flex flex-row items-center gap-1">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M10 5C10 8 6 11 6 11C6 11 2 8 2 5C2 3.93913 2.42143 2.92172 3.17157 2.17157C3.92172 1.42143 4.93913 1 6 1C7.06087 1 8.07828 1.42143 8.82843 2.17157C9.57857 2.92172 10 3.93913 10 5Z"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                      <path
-                        d="M6 6.5C6.82843 6.5 7.5 5.82843 7.5 5C7.5 4.17157 6.82843 3.5 6 3.5C5.17157 3.5 4.5 4.17157 4.5 5C4.5 5.82843 5.17157 6.5 6 6.5Z"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                    <span class="font-light text-[10px] lg:text-xs"
-                      >Cabanatuan City</span
-                    >
-                  </li>
-                  <li class="flex flex-row items-center gap-1">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M9.5 10.5V9.5C9.5 8.96957 9.28929 8.46086 8.91421 8.08579C8.53914 7.71071 8.03043 7.5 7.5 7.5H4.5C3.96957 7.5 3.46086 7.71071 3.08579 8.08579C2.71071 8.46086 2.5 8.96957 2.5 9.5V10.5"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                      <path
-                        d="M6 5.5C7.10457 5.5 8 4.60457 8 3.5C8 2.39543 7.10457 1.5 6 1.5C4.89543 1.5 4 2.39543 4 3.5C4 4.60457 4.89543 5.5 6 5.5Z"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                    <span class="font-light text-[10px] lg:text-xs"
-                      >2 Available</span
-                    >
-                  </li>
-                </ul>
-              </div>
-              <div class="">
-                <ul class="flex gap-1 flex-col">
-                  <li
-                    class="text-xs text-center border border-gray-800 px-0.5 rounded-lg"
-                  >
-                    Creative
-                  </li>
-                  <li
-                    class="text-xs text-center border border-gray-800 px-0.5 rounded-lg"
-                  >
-                    Figma
-                  </li>
-                  <li
-                    class="text-xs text-center border border-gray-800 px-0.5 rounded-lg"
-                  >
-                    Adobe
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-          <div class="">
-            <button
-              class="text-xs bg-black text-white py-1 px-3 rounded-md font-semibold"
-            >
-              Details
-            </button>
-          </div>
-        </div>
-        <div class="w-full min-h-44 rounded-lg card flex flex-col gap-1 p-1">
-          <div id="" class="colorCard flex flex-col gap-2 card p-2 rounded-md">
-            <div class="flex flex-row items-center justify-center">
-              <div class="flex flex-col w-[80%]">
-                <span class="text-xs">LinkedIn</span>
-                <h1 class="text-lg font-semibold lg:text-xl">UI/UX Designer</h1>
-              </div>
-              <div class="w-[20%] flex items-center">
-                <img
-                  src="./img/LinkedIn_logo_initials.png"
-                  alt=""
-                  class="w-[40px] h-[40px] rounded-full"
-                />
-              </div>
-            </div>
-            <div class="flex flex-row justify-between">
-              <div class="">
-                <ul class="flex flex-col gap-1">
-                  <li class="flex flex-row items-center gap-1">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <g clip-path="url(#clip0_113_107)">
-                        <path
-                          d="M3 11V2C3 1.73478 3.10536 1.48043 3.29289 1.29289C3.48043 1.10536 3.73478 1 4 1H8C8.26522 1 8.51957 1.10536 8.70711 1.29289C8.89464 1.48043 9 1.73478 9 2V11H3Z"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M3 6H2C1.73478 6 1.48043 6.10536 1.29289 6.29289C1.10536 6.48043 1 6.73478 1 7V10C1 10.2652 1.10536 10.5196 1.29289 10.7071C1.48043 10.8946 1.73478 11 2 11H3"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M9 4.5H10C10.2652 4.5 10.5196 4.60536 10.7071 4.79289C10.8946 4.98043 11 5.23478 11 5.5V10C11 10.2652 10.8946 10.5196 10.7071 10.7071C10.5196 10.8946 10.2652 11 10 11H9"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 3H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 5H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 7H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 9H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                      </g>
-                      <defs>
-                        <clipPath id="clip0_113_107">
-                          <rect width="12" height="12" fill="white" />
-                        </clipPath>
-                      </defs>
-                    </svg>
-                    <span class="font-light text-[10px] lg:text-xs"
-                      >LinkedIn</span
-                    >
-                  </li>
-                  <li class="flex flex-row items-center gap-1">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M10 5C10 8 6 11 6 11C6 11 2 8 2 5C2 3.93913 2.42143 2.92172 3.17157 2.17157C3.92172 1.42143 4.93913 1 6 1C7.06087 1 8.07828 1.42143 8.82843 2.17157C9.57857 2.92172 10 3.93913 10 5Z"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                      <path
-                        d="M6 6.5C6.82843 6.5 7.5 5.82843 7.5 5C7.5 4.17157 6.82843 3.5 6 3.5C5.17157 3.5 4.5 4.17157 4.5 5C4.5 5.82843 5.17157 6.5 6 6.5Z"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                    <span class="font-light text-[10px] lg:text-xs"
-                      >Cabanatuan City</span
-                    >
-                  </li>
-                  <li class="flex flex-row items-center gap-1">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M9.5 10.5V9.5C9.5 8.96957 9.28929 8.46086 8.91421 8.08579C8.53914 7.71071 8.03043 7.5 7.5 7.5H4.5C3.96957 7.5 3.46086 7.71071 3.08579 8.08579C2.71071 8.46086 2.5 8.96957 2.5 9.5V10.5"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                      <path
-                        d="M6 5.5C7.10457 5.5 8 4.60457 8 3.5C8 2.39543 7.10457 1.5 6 1.5C4.89543 1.5 4 2.39543 4 3.5C4 4.60457 4.89543 5.5 6 5.5Z"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                    <span class="font-light text-[10px] lg:text-xs"
-                      >2 Available</span
-                    >
-                  </li>
-                </ul>
-              </div>
-              <div class="">
-                <ul class="flex gap-1 flex-col">
-                  <li
-                    class="text-xs text-center border border-gray-800 px-0.5 rounded-lg"
-                  >
-                    Creative
-                  </li>
-                  <li
-                    class="text-xs text-center border border-gray-800 px-0.5 rounded-lg"
-                  >
-                    Figma
-                  </li>
-                  <li
-                    class="text-xs text-center border border-gray-800 px-0.5 rounded-lg"
-                  >
-                    Adobe
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-          <div class="">
-            <button
-              class="text-xs bg-black text-white py-1 px-3 rounded-md font-semibold"
-            >
-              Details
-            </button>
-          </div>
-        </div>
-        <div class="w-full min-h-44 rounded-lg card flex flex-col gap-1 p-1">
-          <div id="" class="colorCard flex flex-col gap-2 card p-2 rounded-md">
-            <div class="flex flex-row items-center justify-center">
-              <div class="flex flex-col w-[80%]">
-                <span class="text-xs">LinkedIn</span>
-                <h1 class="text-lg font-semibold lg:text-xl">UI/UX Designer</h1>
-              </div>
-              <div class="w-[20%] flex items-center">
-                <img
-                  src="./img/LinkedIn_logo_initials.png"
-                  alt=""
-                  class="w-[40px] h-[40px] rounded-full"
-                />
-              </div>
-            </div>
-            <div class="flex flex-row justify-between">
-              <div class="">
-                <ul class="flex flex-col gap-1">
-                  <li class="flex flex-row items-center gap-1">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <g clip-path="url(#clip0_113_107)">
-                        <path
-                          d="M3 11V2C3 1.73478 3.10536 1.48043 3.29289 1.29289C3.48043 1.10536 3.73478 1 4 1H8C8.26522 1 8.51957 1.10536 8.70711 1.29289C8.89464 1.48043 9 1.73478 9 2V11H3Z"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M3 6H2C1.73478 6 1.48043 6.10536 1.29289 6.29289C1.10536 6.48043 1 6.73478 1 7V10C1 10.2652 1.10536 10.5196 1.29289 10.7071C1.48043 10.8946 1.73478 11 2 11H3"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M9 4.5H10C10.2652 4.5 10.5196 4.60536 10.7071 4.79289C10.8946 4.98043 11 5.23478 11 5.5V10C11 10.2652 10.8946 10.5196 10.7071 10.7071C10.5196 10.8946 10.2652 11 10 11H9"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 3H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 5H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 7H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 9H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                      </g>
-                      <defs>
-                        <clipPath id="clip0_113_107">
-                          <rect width="12" height="12" fill="white" />
-                        </clipPath>
-                      </defs>
-                    </svg>
-                    <span class="font-light text-[10px] lg:text-xs"
-                      >LinkedIn</span
-                    >
-                  </li>
-                  <li class="flex flex-row items-center gap-1">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M10 5C10 8 6 11 6 11C6 11 2 8 2 5C2 3.93913 2.42143 2.92172 3.17157 2.17157C3.92172 1.42143 4.93913 1 6 1C7.06087 1 8.07828 1.42143 8.82843 2.17157C9.57857 2.92172 10 3.93913 10 5Z"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                      <path
-                        d="M6 6.5C6.82843 6.5 7.5 5.82843 7.5 5C7.5 4.17157 6.82843 3.5 6 3.5C5.17157 3.5 4.5 4.17157 4.5 5C4.5 5.82843 5.17157 6.5 6 6.5Z"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                    <span class="font-light text-[10px] lg:text-xs"
-                      >Cabanatuan City</span
-                    >
-                  </li>
-                  <li class="flex flex-row items-center gap-1">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M9.5 10.5V9.5C9.5 8.96957 9.28929 8.46086 8.91421 8.08579C8.53914 7.71071 8.03043 7.5 7.5 7.5H4.5C3.96957 7.5 3.46086 7.71071 3.08579 8.08579C2.71071 8.46086 2.5 8.96957 2.5 9.5V10.5"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                      <path
-                        d="M6 5.5C7.10457 5.5 8 4.60457 8 3.5C8 2.39543 7.10457 1.5 6 1.5C4.89543 1.5 4 2.39543 4 3.5C4 4.60457 4.89543 5.5 6 5.5Z"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                    <span class="font-light text-[10px] lg:text-xs"
-                      >2 Available</span
-                    >
-                  </li>
-                </ul>
-              </div>
-              <div class="">
-                <ul class="flex gap-1 flex-col">
-                  <li
-                    class="text-xs text-center border border-gray-800 px-0.5 rounded-lg"
-                  >
-                    Creative
-                  </li>
-                  <li
-                    class="text-xs text-center border border-gray-800 px-0.5 rounded-lg"
-                  >
-                    Figma
-                  </li>
-                  <li
-                    class="text-xs text-center border border-gray-800 px-0.5 rounded-lg"
-                  >
-                    Adobe
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-          <div class="">
-            <button
-              class="text-xs bg-black text-white py-1 px-3 rounded-md font-semibold"
-            >
-              Details
-            </button>
-          </div>
-        </div>
-        <div class="w-full min-h-44 rounded-lg card flex flex-col gap-1 p-1">
-          <div id="" class="colorCard flex flex-col gap-2 card p-2 rounded-md">
-            <div class="flex flex-row items-center justify-center">
-              <div class="flex flex-col w-[80%]">
-                <span class="text-xs">LinkedIn</span>
-                <h1 class="text-lg font-semibold lg:text-xl">UI/UX Designer</h1>
-              </div>
-              <div class="w-[20%] flex items-center">
-                <img
-                  src="./img/LinkedIn_logo_initials.png"
-                  alt=""
-                  class="w-[40px] h-[40px] rounded-full"
-                />
-              </div>
-            </div>
-            <div class="flex flex-row justify-between">
-              <div class="">
-                <ul class="flex flex-col gap-1">
-                  <li class="flex flex-row items-center gap-1">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <g clip-path="url(#clip0_113_107)">
-                        <path
-                          d="M3 11V2C3 1.73478 3.10536 1.48043 3.29289 1.29289C3.48043 1.10536 3.73478 1 4 1H8C8.26522 1 8.51957 1.10536 8.70711 1.29289C8.89464 1.48043 9 1.73478 9 2V11H3Z"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M3 6H2C1.73478 6 1.48043 6.10536 1.29289 6.29289C1.10536 6.48043 1 6.73478 1 7V10C1 10.2652 1.10536 10.5196 1.29289 10.7071C1.48043 10.8946 1.73478 11 2 11H3"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M9 4.5H10C10.2652 4.5 10.5196 4.60536 10.7071 4.79289C10.8946 4.98043 11 5.23478 11 5.5V10C11 10.2652 10.8946 10.5196 10.7071 10.7071C10.5196 10.8946 10.2652 11 10 11H9"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 3H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 5H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 7H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 9H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                      </g>
-                      <defs>
-                        <clipPath id="clip0_113_107">
-                          <rect width="12" height="12" fill="white" />
-                        </clipPath>
-                      </defs>
-                    </svg>
-                    <span class="font-light text-[10px] lg:text-xs"
-                      >LinkedIn</span
-                    >
-                  </li>
-                  <li class="flex flex-row items-center gap-1">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M10 5C10 8 6 11 6 11C6 11 2 8 2 5C2 3.93913 2.42143 2.92172 3.17157 2.17157C3.92172 1.42143 4.93913 1 6 1C7.06087 1 8.07828 1.42143 8.82843 2.17157C9.57857 2.92172 10 3.93913 10 5Z"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                      <path
-                        d="M6 6.5C6.82843 6.5 7.5 5.82843 7.5 5C7.5 4.17157 6.82843 3.5 6 3.5C5.17157 3.5 4.5 4.17157 4.5 5C4.5 5.82843 5.17157 6.5 6 6.5Z"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                    <span class="font-light text-[10px] lg:text-xs"
-                      >Cabanatuan City</span
-                    >
-                  </li>
-                  <li class="flex flex-row items-center gap-1">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M9.5 10.5V9.5C9.5 8.96957 9.28929 8.46086 8.91421 8.08579C8.53914 7.71071 8.03043 7.5 7.5 7.5H4.5C3.96957 7.5 3.46086 7.71071 3.08579 8.08579C2.71071 8.46086 2.5 8.96957 2.5 9.5V10.5"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                      <path
-                        d="M6 5.5C7.10457 5.5 8 4.60457 8 3.5C8 2.39543 7.10457 1.5 6 1.5C4.89543 1.5 4 2.39543 4 3.5C4 4.60457 4.89543 5.5 6 5.5Z"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                    <span class="font-light text-[10px] lg:text-xs"
-                      >2 Available</span
-                    >
-                  </li>
-                </ul>
-              </div>
-              <div class="">
-                <ul class="flex gap-1 flex-col">
-                  <li
-                    class="text-xs text-center border border-gray-800 px-0.5 rounded-lg"
-                  >
-                    Creative
-                  </li>
-                  <li
-                    class="text-xs text-center border border-gray-800 px-0.5 rounded-lg"
-                  >
-                    Figma
-                  </li>
-                  <li
-                    class="text-xs text-center border border-gray-800 px-0.5 rounded-lg"
-                  >
-                    Adobe
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-          <div class="">
-            <button
-              class="text-xs bg-black text-white py-1 px-3 rounded-md font-semibold"
-            >
-              Details
-            </button>
-          </div>
-        </div>
-        <div class="w-full min-h-44 rounded-lg card flex flex-col gap-1 p-1">
-          <div id="" class="colorCard flex flex-col gap-2 card p-2 rounded-md">
-            <div class="flex flex-row items-center justify-center">
-              <div class="flex flex-col w-[80%]">
-                <span class="text-xs">LinkedIn</span>
-                <h1 class="text-lg font-semibold lg:text-xl">UI/UX Designer</h1>
-              </div>
-              <div class="w-[20%] flex items-center">
-                <img
-                  src="./img/LinkedIn_logo_initials.png"
-                  alt=""
-                  class="w-[40px] h-[40px] rounded-full"
-                />
-              </div>
-            </div>
-            <div class="flex flex-row justify-between">
-              <div class="">
-                <ul class="flex flex-col gap-1">
-                  <li class="flex flex-row items-center gap-1">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <g clip-path="url(#clip0_113_107)">
-                        <path
-                          d="M3 11V2C3 1.73478 3.10536 1.48043 3.29289 1.29289C3.48043 1.10536 3.73478 1 4 1H8C8.26522 1 8.51957 1.10536 8.70711 1.29289C8.89464 1.48043 9 1.73478 9 2V11H3Z"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M3 6H2C1.73478 6 1.48043 6.10536 1.29289 6.29289C1.10536 6.48043 1 6.73478 1 7V10C1 10.2652 1.10536 10.5196 1.29289 10.7071C1.48043 10.8946 1.73478 11 2 11H3"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M9 4.5H10C10.2652 4.5 10.5196 4.60536 10.7071 4.79289C10.8946 4.98043 11 5.23478 11 5.5V10C11 10.2652 10.8946 10.5196 10.7071 10.7071C10.5196 10.8946 10.2652 11 10 11H9"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 3H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 5H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 7H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                        <path
-                          d="M5 9H7"
-                          stroke="black"
-                          stroke-width="0.666667"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        />
-                      </g>
-                      <defs>
-                        <clipPath id="clip0_113_107">
-                          <rect width="12" height="12" fill="white" />
-                        </clipPath>
-                      </defs>
-                    </svg>
-                    <span class="font-light text-[10px] lg:text-xs"
-                      >LinkedIn</span
-                    >
-                  </li>
-                  <li class="flex flex-row items-center gap-1">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M10 5C10 8 6 11 6 11C6 11 2 8 2 5C2 3.93913 2.42143 2.92172 3.17157 2.17157C3.92172 1.42143 4.93913 1 6 1C7.06087 1 8.07828 1.42143 8.82843 2.17157C9.57857 2.92172 10 3.93913 10 5Z"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                      <path
-                        d="M6 6.5C6.82843 6.5 7.5 5.82843 7.5 5C7.5 4.17157 6.82843 3.5 6 3.5C5.17157 3.5 4.5 4.17157 4.5 5C4.5 5.82843 5.17157 6.5 6 6.5Z"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                    <span class="font-light text-[10px] lg:text-xs"
-                      >Cabanatuan City</span
-                    >
-                  </li>
-                  <li class="flex flex-row items-center gap-1">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 12 12"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M9.5 10.5V9.5C9.5 8.96957 9.28929 8.46086 8.91421 8.08579C8.53914 7.71071 8.03043 7.5 7.5 7.5H4.5C3.96957 7.5 3.46086 7.71071 3.08579 8.08579C2.71071 8.46086 2.5 8.96957 2.5 9.5V10.5"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                      <path
-                        d="M6 5.5C7.10457 5.5 8 4.60457 8 3.5C8 2.39543 7.10457 1.5 6 1.5C4.89543 1.5 4 2.39543 4 3.5C4 4.60457 4.89543 5.5 6 5.5Z"
-                        stroke="black"
-                        stroke-width="0.666667"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                    <span class="font-light text-[10px] lg:text-xs"
-                      >2 Available</span
-                    >
-                  </li>
-                </ul>
-              </div>
-              <div class="">
-                <ul class="flex gap-1 flex-col">
-                  <li
-                    class="text-xs text-center border border-gray-800 px-0.5 rounded-lg"
-                  >
-                    Creative
-                  </li>
-                  <li
-                    class="text-xs text-center border border-gray-800 px-0.5 rounded-lg"
-                  >
-                    Figma
-                  </li>
-                  <li
-                    class="text-xs text-center border border-gray-800 px-0.5 rounded-lg"
-                  >
-                    Adobe
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-          <div class="">
-            <button
-              class="text-xs bg-black text-white py-1 px-3 rounded-md font-semibold"
-            >
-              Details
-            </button>
-          </div>
-        </div>
-      </div>
+    
     </main>
     <script>
       const sidebar = document.getElementById("default-sidebar");

@@ -1,3 +1,36 @@
+<?php
+session_start();
+include '../db.php'; // Database connection file
+
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit();
+}
+
+$user_id = $_SESSION['user_id'];
+$CompanyId = $_SESSION['CompanyId'];
+
+
+$stmt = $conn->prepare("SELECT * FROM user WHERE userId = ?");
+$stmt->bind_param("i", $user_id); $stmt->execute(); 
+$result = $stmt->get_result(); 
+$user = $result->fetch_assoc();
+$stmt->close(); 
+
+$stmt = $conn->prepare("SELECT * FROM company WHERE userId = ?");
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$result = $stmt->get_result();
+$company = $result->fetch_assoc();
+$stmt->close();
+
+$defaultPhoto = '../uploads/default.jpg';
+
+
+
+
+?>
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -5,12 +38,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-
+    <link rel="stylesheet" href="./css/footer.css" />
     <link
       href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap"
       rel="stylesheet"
     />
-    <link rel="icon" href="./img/Group 236.svg" type="image/x-icon" />
+    <link rel="icon" href="../img/Group 236.svg" type="image/x-icon" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -84,12 +117,14 @@
         background-color: #3e3c3c;
         color: white;
       }
+      /* Dropdown container */
       .dropdown {
         position: relative;
         display: inline-block;
         width: 100%;
       }
 
+      /* Input container */
       .input-container {
         display: flex;
         flex-wrap: wrap;
@@ -100,14 +135,15 @@
         cursor: text;
       }
 
+      /* Input field */
       .input-container input {
         border: none;
         outline: none;
         flex-grow: 1;
-
         min-width: 150px;
       }
 
+      /* Dropdown content */
       .dropdown-content {
         display: none;
         position: absolute;
@@ -120,6 +156,7 @@
         border: solid 1px black;
       }
 
+      /* Dropdown item */
       .dropdown-content div {
         color: black;
         padding: 8px 16px;
@@ -128,14 +165,17 @@
         cursor: pointer;
       }
 
+      /* Dropdown item hover */
       .dropdown-content div:hover {
         background-color: #f1f1f1;
       }
 
+      /* Show class for dropdown */
       .show {
         display: block;
       }
 
+      /* Skill tag */
       .skill-tag {
         background-color: #4a4848;
         padding: 5px 10px;
@@ -146,11 +186,13 @@
         margin-bottom: 5px;
       }
 
+      /* Skill tag text */
       .skill-tag span {
         margin-right: 5px;
         color: white;
       }
 
+      /* Skill tag button */
       .skill-tag button {
         background: none;
         border: none;
@@ -158,6 +200,7 @@
         cursor: pointer;
         font-size: 16px;
       }
+
       .custom-hidden {
         display: none;
       }
@@ -235,9 +278,9 @@
         >
           <div class="w-[25px] h-[24px] rounded-full">
             <img
-              src="./img/Group 136.png"
+              src="<?php echo isset($company['photo']) && !empty($company['photo']) ? $company['photo'] : $defaultPhoto; ?>"
               alt="Profile"
-              class="w-full h-full object-cover"
+              class="w-full h-full object-cover rounded-full"
             />
           </div>
           <svg
@@ -264,8 +307,7 @@
               >Profile</a
             >
             <a
-              href=""
-           
+              href="#"
               class="custom-block px-4 py-2 text-gray-700 hover:bg-gray-100"
               >Edit Profile</a
             >
@@ -280,7 +322,7 @@
               >Contact Us</a
             >
             <a
-              href="#"
+              href="logout.php"
               class="custom-block px-4 py-2 text-gray-700 hover:bg-gray-100"
               >Logout</a
             >
@@ -288,7 +330,7 @@
         </div>
       </div>
     </nav>
-    <aside
+     <aside
       id="default-sidebar"
       class="custom-sideborder sidebar fixed top-0 left-0 z-40 w-52 h-screen transition-transform -translate-x-full md:translate-x-0 sm:translate-x-0"
       aria-label="Sidebar"
@@ -343,7 +385,7 @@
             </a>
           </li>
           <li>
-            <a href="#" class="flex items-center p-2">
+            <a href="jobposting.php" class="flex items-center p-2">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="24"
@@ -456,74 +498,293 @@
 
     <div id="overlay" class="overlay"></div>
 
-    <div class="hidden "id="editProfModal">
-      <form action="" method="post">
-      <div> 
-        <label for="">Website(Optional)</label>
-        <input type="text">
-      </div>  
-      <div> 
-        <label for="">Logo</label>
-        <input type="file">
-      </div>  
-
-
-      </form>
-    </div>
     <main class="max-w-[1920px] mt-2 lg:ml-52 md:ml-52 p-4">
-      <h1 class="font-semibold text-2xl">Dashboard</h1>
-      <div class="mt-2">
-        <div class="flex flex-row w-full gap-10">
-          <div
-            class="w-[250px] bg-fontColor h-28 flex flex-col p-4 gap-4 text-white rounded-md"
-          >
-            <h3 class="font-semibold text-xl">Applicants</h3>
-            <p class="font-medium text-2xl">10</p>
+      <form
+        method="post"
+        action="update_profile.php"
+        class="flex flex-col items-center w-full"
+        id="form"
+        enctype="multipart/form-data"
+      >
+        <div class="lg:flex lg:flex-row w-full items-center lg:justify-between">
+          <div class="flex lg:items-start items-center">
+            <h3 class="text-center font-semibold text-3xl">Edit Profile</h3>
           </div>
-          <div
-            class="w-[250px] bg-fontColor h-28 flex flex-col p-4 gap-4 text-white rounded-md"
-          >
-            <h3 class="font-semibold text-xl">Jobs Posted</h3>
-            <p class="font-semibold text-2xl">3</p>
-          </div>
-          <div
-            class="w-[250px] bg-fontColor h-28 flex flex-col p-4 gap-4 text-white rounded-md"
-          >
-            <h3 class="font-semibold text-xl">Trainees</h3>
-            <p class="font-semibold text-2xl">5</p>
-          </div>
-          <div
-            class="w-[250px] bg-fontColor h-28 flex flex-col p-4 gap-4 text-white rounded-md"
-          >
-            <h3 class="font-semibold text-xl">Rejected Students</h3>
-            <p class="font-semibold text-2xl">1</p>
-          </div>
-          <div
-            class="w-[250px] bg-fontColor h-28 flex flex-col p-4 gap-4 text-white rounded-md"
-          >
-            <h3 class="font-semibold text-xl">Returned Students</h3>
-            <p class="font-semibold text-2xl">1</p>
+          <div class="hidden lg:flex flex-row items-end gap-5">
+            <input
+              type="reset"
+              value="Cancel"
+              class="change-photo p-2 lg:py-1 lg:px-4 lg:text-lg rounded-md font-semibold text-xs"
+            />
+            <input
+              type="submit"
+              value="Submit"
+              id="submitBtn"
+              class="remove-photo p-2 lg:py-1 lg:px-4 lg:text-lg rounded-md font-semibold text-xs"
+            />
           </div>
         </div>
-        <div class="w-full">
-          <h2 class="text-lg font-semibold mb-4">Overall Students</h2>
-          <canvas id="studentChart" width="800" height="200"></canvas>
+
+        <div class="flex flex-col lg:flex-row mt-5 items-center w-full gap-5">
+          <div class="flex flex-col items-center gap-5 lg:flex-row w-full">
+            <div>
+              <img
+                src="<?php echo isset($company['photo']) && !empty($company['photo']) ? $company['photo'] : $defaultPhoto; ?>"
+                alt="User Photo"
+                class="w-32 h-32 rounded-full object-cover"
+              />
+            </div>
+            <div class="flex flex-col">
+              <label for="photo" class="font-medium text-base"
+                >User Photo</label
+              >
+              <input
+                type="file"
+                name="photo"
+                id="photo"
+                class="change-photo text-sm px-2 py-1 rounded-md font-semibold"
+              />
+            </div>
+          </div>
+          <div class="flex flex-col items-center gap-5 lg:flex-row w-full">
+            <div>
+              <img
+                src="<?php echo isset($company['CompanyLogo']) && !empty($company['CompanyLogo']) ? $company['CompanyLogo'] : $defaultPhoto; ?>"
+                alt="Company Logo"
+                class="w-32 h-32 rounded-full object-cover"
+              />
+            </div>
+            <div class="flex flex-col">
+              <label for="CompanyLogo" class="font-medium text-base"
+                >Company Logo</label
+              >
+              <input
+                type="file"
+                name="CompanyLogo"
+                id="CompanyLogo"
+                class="change-photo text-sm px-2 py-1 rounded-md font-semibold"
+              />
+            </div>
+          </div>
         </div>
-      </div>
+        <div class="flex w-full lg:flex-row gap-4 mt-5">
+
+            <div class="w-full flex flex-col lg:flex-row gap-2">
+              <div class="flex flex-col w-full">
+                <label for="firstName" class="font-medium text-sm"
+                  >First name</label
+                >
+                <input
+                  name="firstName"
+                  type="text"
+                  value="<?php echo htmlspecialchars($user['firstName']); ?>"
+                  class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black"
+                />
+              </div>
+              <div class="flex flex-col w-full">
+                <label for="MiddleName" class="font-medium text-sm"
+                  >Middle name</label
+                >
+                <input
+                  name="MiddleName"
+                  type="text"
+                  value="<?php echo htmlspecialchars($user['MiddleName']); ?>"
+                  class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black"
+                />
+              </div>
+              <div class="flex flex-col w-full">
+                <label for="lastName" class="font-medium text-sm"
+                  >Last name</label
+                >
+                <input
+                  name="LastName"
+                  type="text"
+                  value="<?php echo htmlspecialchars($user['LastName']); ?>"
+                  class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black"
+                />
+              </div>
+            </div>
+      
+        </div>
+
+  
+          <div class="w-full flex flex-col lg:flex-col gap-2">
+          <div>
+              <label for="emailAddress" class="font-medium text-sm"
+                >Email address</label
+              >
+              <input
+                name="EmailAddress"
+                type="text"
+                value="<?php echo htmlspecialchars($user['EmailAddress']); ?>"
+                class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black"
+              />
+            </div>
+             <div>
+              <label for="website" class="font-medium text-sm"
+                >Website(Optional)</label
+              >
+              <input
+                name="Website"
+                type="text"
+                value="<?php echo htmlspecialchars($company['Website']); ?>"
+                class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black"
+              />
+            </div>
+            
+       
+            <div class="password">
+              <div class="relative">
+                <label for="newPassword" class="font-medium text-sm"
+                  >Change Password</label
+                >
+                <input
+                  name="newPassword"
+                  type="password"
+                  id="newPassword"
+                  class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black"
+                />
+                <span
+                  id="togglePassword"
+                  class="absolute right-2 top-[40px] transform -translate-y-1/2 cursor-pointer"
+                >
+                  <svg
+                    id="eyeIcon"
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="lucide lucide-eye"
+                  >
+                    <path
+                      d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"
+                    />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                </span>
+              </div>
+              <div class="relative mt-4">
+                <label for="confirmPassword" class="font-medium text-sm"
+                  >Confirm Password</label
+                >
+                <input
+                  name="confirmPassword"
+                  type="password"
+                  id="confirmPassword"
+                  class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black"
+                />
+                <span
+                  id="toggleConfirmPassword"
+                  class="absolute right-2 top-[40px] transform -translate-y-1/2 cursor-pointer"
+                >
+                  <svg
+                    id="eyeIconConfirm"
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    class="lucide lucide-eye"
+                  >
+                    <path
+                      d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"
+                    />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                </span>
+              </div>
+              <span id="passwordMatchMessage" class="text-red-500 mt-2 hidden"
+                ></span>
+                  
+            </div>
+          </div>
+ 
+
+        <div class="flex flex-row justify-center mt-5 lg:hidden">
+          <input
+            type="submit"
+            class="bg-button text-white px-4 py-2 rounded-md font-semibold"
+          />
+        </div>
+      </form>
     </main>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <script>
-      sidebar = document.getElementById("default-sidebar");
+      document.addEventListener("DOMContentLoaded", function () {
+        const togglePassword = document.getElementById("togglePassword");
+        const passwordField = document.getElementById("newPassword");
+        const toggleConfirmPassword = document.getElementById(
+          "toggleConfirmPassword"
+        );
+        const confirmPasswordField = document.getElementById("confirmPassword");
+        const passwordMatchMessage = document.getElementById(
+          "passwordMatchMessage"
+        );
+
+        // Function to toggle password visibility
+        function togglePasswordVisibility(field, icon) {
+          if (field.type === "password") {
+            field.type = "text";
+            icon.innerHTML =
+              '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye-off"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></svg>';
+          } else {
+            field.type = "password";
+            icon.innerHTML =
+              '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>';
+          }
+        }
+
+        // Add event listeners
+        togglePassword.addEventListener("click", function () {
+          togglePasswordVisibility(passwordField, this);
+        });
+
+        toggleConfirmPassword.addEventListener("click", function () {
+          togglePasswordVisibility(confirmPasswordField, this);
+        });
+
+        // Validate password match
+        function validatePasswordMatch() {
+          if (passwordField.value !== confirmPasswordField.value) {
+            passwordMatchMessage.textContent = "Passwords do not match";
+            passwordMatchMessage.classList.remove("hidden");
+          } else {
+            passwordMatchMessage.textContent = "Passwords matched";
+            passwordMatchMessage.classList.add("text-green-500");
+            passwordMatchMessage.classList.remove("text-red-500");
+            passwordMatchMessage.classList.remove("hidden");
+          }
+        }
+
+        // Add event listeners for password fields
+        passwordField.addEventListener("input", validatePasswordMatch);
+        confirmPasswordField.addEventListener("input", validatePasswordMatch);
+      });
+
+      //sidebar
+      const sidebar = document.getElementById("default-sidebar");
       const sidebarToggle = document.getElementById("sidebarToggle");
       const overlay = document.getElementById("overlay");
+
       sidebarToggle.addEventListener("click", () => {
         sidebar.classList.toggle("show");
         overlay.classList.toggle("show");
       });
+
       overlay.addEventListener("click", () => {
         sidebar.classList.remove("show");
         overlay.classList.remove("show");
       });
+
       document.addEventListener("click", (event) => {
         if (
           !sidebar.contains(event.target) &&
@@ -541,35 +802,14 @@
           dropdownMenu.classList.toggle("custom-hidden");
         });
 
-      //charts
+      const form = document.getElementById("form");
+      form.addEventListener("submit", function (e) {
+        const input = document.getElementById("skills");
+        input.value = selectedSkills.join("-=-");
 
-      const studentChartData = {
-        labels: ["January", "February", "March", "April", "May", "June"],
-        datasets: [
-          {
-            label: "Students",
-            data: [50, 60, 70, 65, 80, 90],
-            backgroundColor: "rgba(255, 99, 132, 0.2)",
-            borderColor: "rgba(255, 99, 132, 1)",
-            borderWidth: 1,
-          },
-        ],
-      };
-
-      // Render the chart
-      const studentChart = new Chart(document.getElementById("studentChart"), {
-        type: "line",
-        data: studentChartData,
-        options: {
-          scales: {
-            y: {
-              beginAtZero: true,
-            },
-          },
-        },
+        e.currentTarget.submit();
       });
     </script>
-    <script src="../notif.js"></script>
-    <script src="editProfModal.js"></script>
+    <script src="notif.js"></script>
   </body>
 </html>

@@ -37,16 +37,39 @@ $result = $stmt->get_result();
 $location = $result->fetch_assoc();
 $stmt->close();
 
-// Fetch skills data
-$stmt = $conn->prepare("SELECT skillName FROM skills WHERE UserId = ?");
-$stmt->bind_param("i", $user_id);
+$stmt = $conn->prepare("SELECT skillName FROM skills");
 $stmt->execute();
 $result = $stmt->get_result();
-$skills = [];
+$skillList=  [] ; 
+foreach ($result as $row) {
+    $skillList[] = $row['skillName'];
+} 
+ $stmt->close();
+
+$stmt = $conn->prepare("SELECT skillId FROM skillSet WHERE UserId = ?");
+$stmt->bind_param("i", $user['UserId']);
+$stmt->execute();
+$result = $stmt->get_result();
+$skillIds = [];
 while ($row = $result->fetch_assoc()) {
-    $skills[] = $row['skillName'];
+    $skillIds[] = $row['skillId'];
 }
 $stmt->close();
+
+
+
+$skills = [];
+foreach ($skillIds as $skillId) {
+    $stmt = $conn->prepare("SELECT skillName FROM skills WHERE skillId = ?");
+    $stmt->bind_param("i", $skillId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $skill = $result->fetch_assoc();
+    $skills[] = $skill['skillName'];
+    $stmt->close();
+
+
+}
 
 $skillsString = implode(',', $skills);
 ?>
@@ -343,7 +366,7 @@ $skillsString = implode(',', $skills);
               >Contact Us</a
             >
             <a
-              href="#"
+              href="logout.php"
               class="custom-block px-4 py-2 text-gray-700 hover:bg-gray-100"
               >Logout</a
             >
@@ -462,7 +485,7 @@ $skillsString = implode(',', $skills);
         </div>
         <div class="hidden lg:flex flex-row items-end gap-5">
             <input type="reset" value="Cancel" class="change-photo p-2 lg:py-1 lg:px-4 lg:text-lg rounded-md font-semibold text-xs">
-            <input type="submit" value="Submit" class="remove-photo p-2 lg:py-1 lg:px-4 lg:text-lg rounded-md font-semibold text-xs">
+            <input type="submit" value="Submit" id="submitBtn" class="remove-photo p-2 lg:py-1 lg:px-4 lg:text-lg rounded-md font-semibold text-xs">
         </div>
     </div>
 
@@ -553,6 +576,24 @@ $skillsString = implode(',', $skills);
                     <label for="emailAddress" class="font-medium text-sm">Email address</label>
                     <input name="emailAddress" type="text" value="<?php echo htmlspecialchars($user['EmailAddress']); ?>" class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black">
                 </div>
+                <div class="relative">
+    <label for="newPassword" class="font-medium text-sm">Change Password</label>
+    <input name="newPassword" type="password" id="newPassword" class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black">
+    <span id="togglePassword" class="absolute right-2 top-[40px]  transform -translate-y-1/2 cursor-pointer">
+ 
+        <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
+    </span>
+</div>
+<div class="relative mt-4">
+    <label for="confirmPassword" class="font-medium text-sm">Confirm Password</label>
+    <input name="confirmPassword" type="password" id="confirmPassword" class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black">
+    <span id="toggleConfirmPassword" class="absolute right-2 top-[40px] transform -translate-y-1/2 cursor-pointer">
+
+        <svg id="eyeIconConfirm" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>
+    </span>
+</div>
+<span id="passwordMatchMessage" class="text-red-500 mt-2 hidden"></span>
+
                 <div>
                     <label for="phoneNo" class="font-medium text-sm">Phone number</label>
                     <input name="phoneNo" type="text" value="<?php echo htmlspecialchars($student['phoneNo']); ?>" class="px-2 h-8 border w-full rounded-md focus:outline-none focus:border-black">
@@ -576,7 +617,7 @@ $skillsString = implode(',', $skills);
                 <div class="dropdown">
                     <label for="skills" class="font-medium text-sm">Skills</label>
                     <div class="input-container" id="input-container" onclick="focusInput()">
-                        <input name="skills" type="text" id="skills" value="<?php echo htmlspecialchars($skillsString); ?>" class="skills-input" oninput="filterFunction()" onfocus="showDropdown()" onblur="hideDropdown()" autocomplete="off">
+                            <input name="skills" type="text" id="skills" class="skills-input" oninput="filterFunction()" onfocus="showDropdown()" onblur="hideDropdown()" autocomplete="off">
                     </div>
                     <div id="dropdown-content" class="dropdown-content"></div>
                 </div>
@@ -641,12 +682,57 @@ $skillsString = implode(',', $skills);
 
 
     </main>
+    
     <script>
-      
+
+document.addEventListener('DOMContentLoaded', function() {
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordField = document.getElementById('newPassword');
+    const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
+    const confirmPasswordField = document.getElementById('confirmPassword');
+    const passwordMatchMessage = document.getElementById('passwordMatchMessage');
+    
+    // Function to toggle password visibility
+    function togglePasswordVisibility(field, icon) {
+        if (field.type === 'password') {
+            field.type = 'text';
+            icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye-off"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></svg>';
+        } else {
+            field.type = 'password';
+            icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-eye"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>';
+        }
+    }
+
+    // Add event listeners
+    togglePassword.addEventListener('click', function() {
+        togglePasswordVisibility(passwordField, this);
+    });
+
+    toggleConfirmPassword.addEventListener('click', function() {
+        togglePasswordVisibility(confirmPasswordField, this);
+    });
+
+    // Validate password match
+    function validatePasswordMatch() {
+        if (passwordField.value !== confirmPasswordField.value) {
+            passwordMatchMessage.textContent = 'Passwords do not match';
+            passwordMatchMessage.classList.remove('hidden');
+        } else {
+            passwordMatchMessage.textContent = 'Passwords match';
+            passwordMatchMessage.classList.add('text-green-500');
+            passwordMatchMessage.classList.remove('text-red-500');
+            passwordMatchMessage.classList.remove('hidden');
+        }
+    }
+
+    // Add event listeners for password fields
+    passwordField.addEventListener('input', validatePasswordMatch);
+    confirmPasswordField.addEventListener('input', validatePasswordMatch);
+});
 
 // Initialize skills from PHP
 const skills = <?php echo json_encode($skills); ?>;
-
+const skillList = <?php echo json_encode($skillList); ?>;
 // Initialize selectedSkills from the backend skills, ensuring no duplicates
 let selectedSkills = skills.slice(); // Start with existing skills
 
@@ -669,15 +755,15 @@ function hideDropdown() {
 
 function filterFunction() {
     const filter = inputField.value.toUpperCase();
-    console.log("Filtering with:", filter); // Debug log
-    dropdownContent.innerHTML = ""; // Clear the dropdown
+      console.log("Filtering with:", filter); // Debug log
+    dropdownContent.innerHTML = ""; 
 
-    let matchedSkills = skills.filter(skill =>
+    let matchedSkills = skillList.filter(skill =>
         skill.toUpperCase().includes(filter) &&
         !selectedSkills.includes(skill)
     );
 
-    console.log("Matched skills:", matchedSkills); // Debug log
+  
 
     if (matchedSkills.length === 0 && filter !== "") {
         matchedSkills = [`Add "${inputField.value}"`];
@@ -725,18 +811,18 @@ function updateSelectedSkills() {
     inputField.focus();
 }
 
-// Remove a skill
+
 function removeSkill(skill) {
     selectedSkills = selectedSkills.filter((s) => s !== skill);
     updateSelectedSkills();
 }
 
-// Focus the input field
+
 function focusInput() {
     inputField.focus();
 }
 
-// Initialize the display with existing skills
+
 updateSelectedSkills();
 
 

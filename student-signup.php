@@ -21,27 +21,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $role = isset($_POST['role']) ? sanitize_input($_POST['role']) : '';
     $password = isset($_POST['pw']) ? $_POST['pw'] : '';
 
-    // if (!preg_match("/^[a-zA-Z']+$/", $firstname)) {
-    //     $errors[] = "Invalid first name";
-    // }
-    // if (!empty($middlename) && !preg_match("/^[a-zA-Z'-]+$/", $middlename)) {
-    //     $errors[] = "Invalid middle name";
-    // }
-    // if (!preg_match("/^[a-zA-Z']+$/", $lastname)) {
-    //     $errors[] = "Invalid last name";
-    // }
-    // if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    //     $errors[] = "Invalid email format";
-    // }
-    // if (!preg_match("/^[a-zA-Z0-9\-]+$/", $studNumber)) {
-    //     $errors[] = "Invalid student number";
-    // }
-    // if (!preg_match("/^[a-zA-Z0-9 ]+$/", $course)) {
-    //     $errors[] = "Invalid course";
-    // }
-    // if (strlen($password) < 8) {
-    //     $errors[] = "Password must be at least 8 characters long";
-    // }
+    if (!preg_match("/^[a-zA-Z']+$/", $firstname)) {
+        $errors[] = "Invalid first name";
+    }
+    if (!empty($middlename) && !preg_match("/^[a-zA-Z'-]+$/", $middlename)) {
+        $errors[] = "Invalid middle name";
+    }
+    if (!preg_match("/^[a-zA-Z']+$/", $lastname)) {
+        $errors[] = "Invalid last name";
+    }
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $errors[] = "Invalid email format";
+    }
+    if (!preg_match("/^[a-zA-Z0-9\-]+$/", $studNumber)) {
+        $errors[] = "Invalid student number";
+    }
+    if (!preg_match("/^[a-zA-Z0-9 ]+$/", $course)) {
+        $errors[] = "Invalid course";
+    }
+    if (strlen($password) < 8) {
+        $errors[] = "Password must be at least 8 characters long";
+    }
 
 
     if (empty($errors)) {

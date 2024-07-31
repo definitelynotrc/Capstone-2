@@ -1,3 +1,92 @@
+<?php
+include '../db.php';
+session_start();
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit();
+}
+
+$user_id = $_SESSION['user_id'];
+$CompanyId = $_SESSION['CompanyId'];
+
+$stmt = $conn->prepare("SELECT * FROM company WHERE CompanyId = ?");
+$stmt->bind_param("i", $CompanyId);
+$stmt->execute();
+$result = $stmt->get_result();
+$company = $result->fetch_assoc();
+$stmt->close();
+
+
+
+$stmt = $conn->prepare("SELECT skillId FROM skillSet WHERE UserId = ?");
+$stmt->bind_param("i", $user['UserId']);
+$stmt->execute();
+$result = $stmt->get_result();
+$skillIds = [];
+while ($row = $result->fetch_assoc()) {
+    $skillIds[] = $row['skillId'];
+}
+$stmt->close();
+
+
+if (!empty($skills)) {
+    $skillsArray = array_map('trim', explode('-=-', $skills)); // Ensure correct splitting
+    foreach ($skillsArray as $skill) {
+        $skill = trim($skill);
+
+        // Check if the skill already exists
+        $skillQuery = "SELECT skillId FROM skills WHERE skillName = ?";
+        $stmt = $conn->prepare($skillQuery);
+        $stmt->bind_param('s', $skill);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+
+        if ($result->num_rows === 0) {
+            $insertSkillQuery = "INSERT INTO skills (skillName) VALUES (?)";
+            $stmt = $conn->prepare($insertSkillQuery);
+            $stmt->bind_param('s', $skill);
+            $stmt->execute();
+            $skillId = $stmt->insert_id;
+        } else {
+            $row = $result->fetch_assoc();
+            $skillId = $row['skillId'];
+
+        }
+            $checkSkill = "SELECT COUNT(*) as count FROM skillset WHERE skillId = ? AND UserId = ?";
+            $stmt = $conn->prepare($checkSkill);
+            $stmt->bind_param('ii', $skillId, $user['UserId']);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $row = $result->fetch_assoc();
+            if ($row['count'] == 0) {
+                $insertSkillQuery = "INSERT INTO skillset (skillId, UserId) VALUES (?, ?)";
+                $stmt = $conn->prepare($insertSkillQuery);
+                $stmt->bind_param('ii', $skillId, $userId);
+                $stmt->execute();
+            }
+
+
+
+    }
+}
+$skills = [];
+foreach ($skillIds as $skillId) {
+    $stmt = $conn->prepare("SELECT skillName FROM skills WHERE skillId = ?");
+    $stmt->bind_param("i", $skillId);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $skill = $result->fetch_assoc();
+    $skills[] = $skill['skillName'];
+    $stmt->close();
+
+
+}
+
+$skillsString = implode(',', $skills);
+?>
+
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -16,7 +105,7 @@
       tailwind.config = {
         theme: {
           extend: {
-            colors: {
+            colors: { 
               fontColor: "#1E1E1E",
               card1: "#FBC0C0",
               card2: "#F4E87A",
@@ -84,80 +173,90 @@
         background-color: #3e3c3c;
         color: white;
       }
-      .dropdown {
-        position: relative;
-        display: inline-block;
-        width: 100%;
-      }
+       /* Dropdown container */
+.dropdown {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+}
 
-      .input-container {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        border: 1px solid #3e3c3c;
-        border-radius: 5px;
-        padding: 5px;
-        cursor: text;
-      }
+/* Input container */
+.input-container {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 5px;
+    cursor: text;
+}
 
-      .input-container input {
-        border: none;
-        outline: none;
-        flex-grow: 1;
+/* Input field */
+.input-container input {
+    border: none;
+    outline: none;
+    flex-grow: 1;
+    min-width: 150px;
+}
 
-        min-width: 150px;
-      }
+/* Dropdown content */
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #f9f9f9;
+    min-width: 100%;
+    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+    max-height: 200px;
+    overflow-y: auto;
+    border: solid 1px black;
+}
 
-      .dropdown-content {
-        display: none;
-        position: absolute;
-        background-color: #f9f9f9;
-        min-width: 100%;
-        box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
-        z-index: 1;
-        max-height: 200px;
-        overflow-y: auto;
-        border: solid 1px black;
-      }
+/* Dropdown item */
+.dropdown-content div {
+    color: black;
+    padding: 8px 16px;
+    text-decoration: none;
+    display: block;
+    cursor: pointer;
+}
 
-      .dropdown-content div {
-        color: black;
-        padding: 8px 16px;
-        text-decoration: none;
-        display: block;
-        cursor: pointer;
-      }
+/* Dropdown item hover */
+.dropdown-content div:hover {
+    background-color: #f1f1f1;
+}
 
-      .dropdown-content div:hover {
-        background-color: #f1f1f1;
-      }
+/* Show class for dropdown */
+.show {
+    display: block;
+}
 
-      .show {
-        display: block;
-      }
+/* Skill tag */
+.skill-tag {
+    background-color: #4a4848;
+    padding: 5px 10px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    margin-right: 5px;
+    margin-bottom: 5px;
+}
 
-      .skill-tag {
-        background-color: #4a4848;
-        padding: 5px 10px;
-        border-radius: 5px;
-        display: flex;
-        align-items: center;
-        margin-right: 5px;
-        margin-bottom: 5px;
-      }
+/* Skill tag text */
+.skill-tag span {
+    margin-right: 5px;
+    color: white;
+}
 
-      .skill-tag span {
-        margin-right: 5px;
-        color: white;
-      }
+/* Skill tag button */
+.skill-tag button {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 16px;
+}
 
-      .skill-tag button {
-        background: none;
-        border: none;
-        color: white;
-        cursor: pointer;
-        font-size: 16px;
-      }
       .custom-hidden {
         display: none;
       }
@@ -238,7 +337,7 @@
         >
           <div class="w-[25px] h-[24px] rounded-full">
             <img
-              src="./img/Group 136.png"
+             src="<?php echo isset($company['photo']) && !empty($company['photo']) ? $company['photo'] : $defaultPhoto; ?>"
               alt="Profile"
               class="w-full h-full object-cover"
             />
@@ -459,26 +558,13 @@
     <div id="overlay" class="overlay"></div>
 
     <main class="max-w-[1920px] mt-2 lg:ml-52 md:ml-52 p-4">
+      <form action="" method="post">
       <div class="mb-5">
         <h1 class="text-3xl font-semibold">Job Posting</h1>
       </div>
-      <span class="p-2 text-xl font-medium">Company Details</span>
-      <div class="w-full p-2 flex flex-col">
-        <div class="flex flex-row w-full p-5 gap-4">
-          <div class="flex flex-col w-full">
-            <label for="" class="text-lg">Company Name</label
-            ><input type="text" class="w-full h-8 custom-inborder rounded-md" />
-          </div>
-          <div class="flex flex-col w-full">
-            <label for="" class="text-lg">Website (Optional)</label
-            ><input type="text" class="w-full h-8 custom-inborder rounded-md" />
-          </div>
 
-          <div class="flex flex-col w-full">
-            <label for="">Company Logo</label
-            ><input type="file" name="" id="" class="w-full" />
-          </div>
-        </div>
+      <div class="w-full p-2 flex flex-col">
+       
         <hr class="mt-5 mb-2" />
         <span class="p-2 text-xl font-medium">Job Details</span>
         <div class="p-5 flex flex-col gap-4">
@@ -486,32 +572,97 @@
             <div class="flex flex-col w-full">
               <label for="" class="text-lg">Position</label
               ><input
+              name="position"
                 type="text"
                 class="w-full h-8 custom-inborder rounded-md"
               />
             </div>
             <div class="flex flex-col w-full">
-              <label for="" class="text-lg">Job location</label
+              <label for="" class="text-lg">Street</label
               ><input
+              name="Street"
                 type="text"
                 class="w-full h-8 custom-inborder rounded-md"
               />
             </div>
           </div>
+           <div class="flex flex-row w-full gap-10">
+            <div class="flex flex-col w-full">
+              <label for="" class="text-lg">Barangay</label
+              ><input
+              name="Barangay"
+                type="text"
+                class="w-full h-8 custom-inborder rounded-md"
+              />
+            </div>
+            <div class="flex flex-col w-full">
+              <label for="" class="text-lg">City/Town</label
+              ><input
+              name="City"
+                type="text"
+                class="w-full h-8 custom-inborder rounded-md"
+              />
+            </div>
+          </div>
+           <div class="flex flex-row w-full gap-10">
+            <div class="flex flex-col w-full">
+              <label for="" class="text-lg">Province</label
+              ><input
+              name="Province"
+                type="text"
+                class="w-full h-8 custom-inborder rounded-md"
+              />
+            </div>
+            <div class="flex flex-col w-full">
+              <label for="" class="text-lg">Available Slots</label
+              ><input
+              name="NoOfOpenings"
+                type="number"
+                class="w-full h-8 custom-inborder rounded-md"
+              />
+            </div>
+          </div>
+          
           <div class="flex flex-row w-full gap-10">
             <div class="flex flex-col w-full">
               <label for="" class="text-lg">Course</label>
               <select
-                name=""
+                name="course"
                 id=""
                 class="w-full h-8 custom-inborder rounded-md"
               >
-                <option value=""></option>
+                <?php
+                        $courses = [
+                            'Bachelor Of Science in Information Technology',
+                            'Bachelor of Science in Architecture',
+                            'Bachelor of Science in Criminology',
+                            'Bachelor of Elementary Education',
+                            'Bachelor of Physical Education',
+                            'Bachelor of Secondary Education',
+                            'Bachelor of Technology and Livelihood Education',
+                            'Bachelor of Science in Industrial Education',
+                            'Bachelor of Science in Physical Education',
+                            'Bachelor of Science in Civil Engineering',
+                            'Bachelor of Science in Electrical Engineering',
+                            'Bachelor of Science in Mechanical Engineering',
+                            'Bachelor of Science in Business Administration',
+                            'Bachelor of Science in Entrepreneurship',
+                            'Bachelor of Science in Hospitality Management',
+                            'Bachelor of Science in Tourism Management',
+                            'Bachelor of Science in Hotel And Restaurant Management',
+                            'Bachelor of Public Administration'
+                        ];
+                        foreach ($courses as $course) {
+                            $selected = $course == $student['course'] ? 'selected' : '';
+                            echo "<option value=\"$course\" $selected>$course</option>";
+                        }
+                        ?>
               </select>
             </div>
             <div class="flex flex-col w-full">
               <label for="" class="text-lg">Monthly allowance(Optional)</label
               ><input
+              name="allowance"
                 type="text"
                 class="w-full h-8 custom-inborder rounded-md"
               />
@@ -521,6 +672,7 @@
             <div class="flex flex-col w-full">
               <label for="" class="text-lg">Start date</label
               ><input
+                name="startDate"
                 type="date"
                 class="w-full h-8 custom-inborder rounded-md"
               />
@@ -528,133 +680,142 @@
             <div class="flex flex-col w-full">
               <label for="" class="text-lg">End date</label
               ><input
+                name="endDate"
                 type="date"
                 class="w-full h-8 custom-inborder rounded-md"
               />
             </div>
           </div>
-          <div class="dropdown">
-            <label for="skills" class="text-lg">Skills</label>
-            <div
-              class="input-container"
-              id="input-container"
-              onclick="focusInput()"
-            >
-              <input
-                type="text"
-                id="skills"
-                class="skills-input"
-                oninput="filterFunction()"
-                onfocus="showDropdown()"
-                onblur="hideDropdown()"
-                autocomplete="off"
-              />
-            </div>
-            <div id="dropdown-content" class="dropdown-content"></div>
-          </div>
+      <div class="dropdown">
+                    <label for="skills" class="font-medium text-sm">Skills</label>
+                    <div class="input-container" id="input-container" onclick="focusInput()">
+                            <input name="skills" type="text" id="skills" class="skills-input" oninput="filterFunction()" onfocus="showDropdown()" onblur="hideDropdown()" autocomplete="off">
+                    </div>
+                    <div id="dropdown-content" class="dropdown-content"></div>
+                </div>
           <div class="w-full">
             <label for="" class="text-lg">Job description</label
             ><textarea
-              name=""
+              name="job_description"
               id=""
               class="w-full min-h-20 custom-inborder rounded-md"
             ></textarea>
           </div>
-          <div class="mt-10 w-full flex flex-row justify-evenly">
-            <buttton
+          <div class="mt-10 flex flex-row justify-evenly">
+            <input
+            type="reset"
+            name="cancel"
+            value="Cancel"
               class="change-photo p-2 lg:py-2 lg:px-6 lg:text-lg rounded-md font-semibold text-xs"
-              >Cancel</buttton
-            >
-            <buttton
+              >
+            
+            <input
+            type="submit"
+            name="post"
+            value="Post Job"
               class="remove-photo p-2 lg:py-2 lg:px-6 lg:text-lg rounded-md font-semibold text-xs"
-              >Submit</buttton
-            >
+              >
           </div>
         </div>
+        </form>
       </div>
     </main>
     <script>
-      const skills = [
-        "HTML",
-        "CSS",
-        "JavaScript",
-        "Python",
-        "Java",
-        "C#",
-        "PHP",
-        "Ruby",
-        "C++",
-        "SQL",
-      ];
-      let selectedSkills = [];
-      const dropdownContent = document.getElementById("dropdown-content");
-      const inputField = document.getElementById("skills");
-      const inputContainer = document.getElementById("input-container");
+// Initialize skills from PHP
+const skills = <?php echo json_encode($skills); ?>;
+const skillList = <?php echo json_encode($skillList); ?>;
+// Initialize selectedSkills from the backend skills, ensuring no duplicates
+let selectedSkills = skills.slice(); // Start with existing skills
 
-      function showDropdown() {
-        dropdownContent.classList.add("show");
-      }
+const dropdownContent = document.getElementById("dropdown-content");
+const inputField = document.getElementById("skills");
+const inputContainer = document.getElementById("input-container");
 
-      function hideDropdown() {
-        setTimeout(() => {
-          dropdownContent.classList.remove("show");
-          inputField.value = "";
-        }, 200);
-      }
+// Show the dropdown
+function showDropdown() {
+    dropdownContent.classList.add("show");
+}
 
-      function filterFunction() {
-        const filter = inputField.value.toUpperCase();
-        dropdownContent.innerHTML = "";
-        let matchedSkills = skills.filter(
-          (skill) =>
-            skill.toUpperCase().includes(filter) &&
-            !selectedSkills.includes(skill)
-        );
+// Hide the dropdown
+function hideDropdown() {
+    setTimeout(() => {
+        dropdownContent.classList.remove("show");
+        inputField.value = "";
+    }, 200);
+}
 
-        if (matchedSkills.length === 0 && filter !== "") {
-          matchedSkills = [`Add "${inputField.value}"`];
-        }
+function filterFunction() {
+    const filter = inputField.value.toUpperCase();
+      console.log("Filtering with:", filter); // Debug log
+    dropdownContent.innerHTML = ""; 
 
-        matchedSkills.forEach((skill) => {
-          const div = document.createElement("div");
-          div.textContent = skill;
-          div.onclick = function () {
+    let matchedSkills = skillList.filter(skill =>
+        skill.toUpperCase().includes(filter) &&
+        !selectedSkills.includes(skill)
+    );
+
+  
+
+    if (matchedSkills.length === 0 && filter !== "") {
+        matchedSkills = [`Add "${inputField.value}"`];
+    }
+
+    matchedSkills.forEach(skill => {
+        const div = document.createElement("div");
+        div.textContent = skill;
+        div.onclick = function () {
             if (skill.startsWith("Add")) {
-              skills.push(inputField.value);
-              selectedSkills.push(inputField.value);
+                const newSkill = inputField.value.trim();
+                if (newSkill && !skills.includes(newSkill)) {
+                    skills.push(newSkill);
+                }
+                if (!selectedSkills.includes(newSkill)) {
+                    selectedSkills.push(newSkill);
+                }
+                inputField.value = "";
+                updateSelectedSkills();
             } else {
-              selectedSkills.push(skill);
+                if (!selectedSkills.includes(skill)) {
+                    selectedSkills.push(skill);
+                }
+                inputField.value = "";
+                updateSelectedSkills();
             }
-            inputField.value = "";
-            updateSelectedSkills();
             dropdownContent.classList.remove("show");
-          };
-          dropdownContent.appendChild(div);
-        });
+        };
+        dropdownContent.appendChild(div);
+    });
 
-        dropdownContent.classList.add("show");
-      }
+    dropdownContent.classList.add("show");
+}
 
-      function updateSelectedSkills() {
-        inputContainer.innerHTML = "";
-        selectedSkills.forEach((skill) => {
-          const skillTag = document.createElement("div");
-          skillTag.className = "skill-tag";
-          skillTag.innerHTML = `<span>${skill}</span><button onclick="removeSkill('${skill}')">&times;</button>`;
-          inputContainer.appendChild(skillTag);
-        });
-        inputContainer.appendChild(inputField);
-        inputField.focus();
-      }
 
-      function removeSkill(skill) {
-        selectedSkills = selectedSkills.filter((s) => s !== skill);
-        updateSelectedSkills();
-      }
+function updateSelectedSkills() {
+    inputContainer.innerHTML = "";
+    selectedSkills.forEach((skill) => {
+        const skillTag = document.createElement("div");
+        skillTag.className = "skill-tag";
+        skillTag.innerHTML = `<span>${skill}</span><button onclick="removeSkill('${skill}')">&times;</button>`;
+        inputContainer.appendChild(skillTag);
+    });
+    inputContainer.appendChild(inputField);
+    inputField.focus();
+}
 
-      function focusInput() {
-        inputField.focus();
-      }
+
+function removeSkill(skill) {
+    selectedSkills = selectedSkills.filter((s) => s !== skill);
+    updateSelectedSkills();
+}
+
+
+function focusInput() {
+    inputField.focus();
+}
+
+
+updateSelectedSkills();
+
       //sidebar
       const sidebar = document.getElementById("default-sidebar");
       const sidebarToggle = document.getElementById("sidebarToggle");

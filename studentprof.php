@@ -2,6 +2,7 @@
 include 'db.php'; 
 session_start();
 $userId = $_SESSION['user_id'];
+$studentId = $_SESSION['StudentId'];
 
 $sql = "SELECT * FROM user WHERE UserId = ?";
 $stmt = $conn->prepare($sql);
@@ -9,36 +10,47 @@ $stmt->bind_param("i", $userId);
 $stmt->execute();
 $result = $stmt->get_result();
 $user = $result->fetch_assoc();
-
+$stmt->close();
 
 $sql = "SELECT * FROM documents WHERE UserId = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $userId);
 $stmt->execute();
 $documents = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-
+$stmt->close();
 
 $sql = "SELECT * FROM student WHERE UserId = ?";
 $stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $userId);
+$stmt->bind_param("i", $user['UserId']);
 $stmt->execute();
 $result = $stmt->get_result();
 $student = $result->fetch_assoc(); 
+$stmt->close();
 
 // Fetch skills from the database
-$sql = "SELECT skillname FROM skills WHERE UserId = ?";
+$sql = "SELECT skillId FROM skillset WHERE UserId = ?";
 $stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $userId);
+$stmt->bind_param("i", $user['UserId']);
 $stmt->execute();
-$skillsResult = $stmt->get_result();
+$skillIds = $stmt->get_result();
+$skillIds =$skillIds->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
 
+$skills = [];
+if (count($skillIds) > 0) {
+  foreach ($skillIds as $skillId) {
+    $sql = "SELECT skillName FROM skills WHERE skillId = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $skillId['skillId']);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $skill = $result->fetch_assoc();
 
-if ($skillsResult->num_rows > 0) {
-    $skills = $skillsResult->fetch_all(MYSQLI_ASSOC);
-} else {
-    $skills = []; // No skills found
+    $skills[] = $skill;
+    $stmt->close();
+  }
+
 }
-
 
 $sql = "SELECT * FROM location WHERE UserId = ?";
 $stmt = $conn->prepare($sql);
@@ -71,7 +83,7 @@ $experience = isset($student['Experience']) ? htmlspecialchars($student['Experie
 $aboutMe = isset($student['AboutMe']) ? htmlspecialchars($student['AboutMe']) : '';
 
 $emailAddress = isset($user['EmailAddress']) ? htmlspecialchars($user['EmailAddress']) : '';
-$coursec = trim($course . ' - ' . $section);
+$coursec = trim($course . ' - 4' . $section);
 
 
 $documentLabels = [
@@ -85,6 +97,7 @@ $documentLabels = [
     'per' => 'Physiological Evaluation Result',
     'mr' => 'Medical Result'
 ];
+$isProfileIncomplete = empty($user['firstName']) || empty($user['LastName']) || empty($student['course']) || empty($student['section']) || empty($student['StudentNo']) || empty($student['DoB']) || empty($student['phoneNo']) || empty($student['Experience']) || empty($student['AboutMe']) || empty($location['Street']) || empty($location['Barangay']) || empty($location['City']) || empty($location['Province']) || empty($skill['skillId']) || empty($document['fileName']);
 
 $stmt->close();
 $conn->close();
@@ -183,11 +196,36 @@ $conn->close();
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
           0 4px 6px -2px rgba(0, 0, 0, 0.05);
       }
+      .overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(5px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 50;
+      }
+      .overlay-content {
+        background: white;
+        padding: 2rem;
+        border-radius: 0.5rem;
+        text-align: center;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        z-index: 999;
+      }
     </style>
 
     <title>InterLink</title>
   </head>
   <body>
+   
+
+
+
     <nav class="z-100 w-full border-b flex flex-row justify-between px-4 py-4">
       <div>
         <svg
@@ -244,7 +282,7 @@ $conn->close();
         >
           <div class="w-[25px] h-[24px] rounded-full">
             <img
-              src="./img/Group 136.png"
+        src="<?php echo $photo; ?>"
               alt="Profile"
               class="w-full h-full object-cover"
             />
@@ -268,12 +306,12 @@ $conn->close();
             class="custom-hidden custom-absolute z-10 top-8 right-0 mt-2 w-48 bg-white border custom-rounded-md custom-shadow-lg"
           >
             <a
-              href="#"
+              href="studentprof.php"
               class="custom-block px-4 py-2 text-gray-700 hover:bg-gray-100"
               >Profile</a
             >
             <a
-              href="#"
+              href="edit-prof.php"
               class="custom-block px-4 py-2 text-gray-700 hover:bg-gray-100"
               >Edit Profile</a
             >
@@ -288,7 +326,7 @@ $conn->close();
               >Contact Us</a
             >
             <a
-              href="#"
+              href="logout.php"
               class="custom-block px-4 py-2 text-gray-700 hover:bg-gray-100"
               >Logout</a
             >
@@ -447,10 +485,11 @@ $conn->close();
         class="custom-shadow lg:col-span-1 lg:row-span-1 rounded-md w-[350px] lg:w-full mx-auto min-h-24 bg-profcard shadow-black p-2"
       >
     <h3 class="text-[0.75rem] font-semibold lg:text-2xl">Skills</h3>
-<div class="flex flex-wrap w-full gap-2">
+<div class="flex flex-wrap w-full gap-2"> 
+
   <?php if (isset($skills) && !empty($skills)): ?>
     <?php foreach ($skills as $skill): ?>
-      <?php $skillName = htmlspecialchars($skill['skillname']); ?>
+      <?php $skillName = htmlspecialchars($skill['skillName']); ?>
       <div class="bg-button h-6 lg:h-8 rounded flex items-center justify-center px-2">
         <p class="text-center text-white text-xs lg:text-xl"><?php echo $skillName; ?></p>
       </div>
@@ -500,7 +539,7 @@ $conn->close();
                                 <?php echo $label; ?>:
                             </label>
                             <a
-                                href="uploads\documents<?php echo $filename; ?>"
+                                href="./uploads/documents/<?php echo $filename; ?>"
                                 download
                                 class="inline-block px-6 py-1 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-button border border-transparent rounded-lg hover:bg-button-dark focus:outline-none focus:shadow-outline"
                             >Download</a>
@@ -515,123 +554,18 @@ $conn->close();
         </div>
 
 
-
-          <!-- <div class="flex flex-row gap-2">
-            <label for="resume" class="text-[10px] lg:text-xl">Resume:</label>
-            <a
-              href=""
-              name="resume"
-              download
-              class="inline-block px-6 py-1 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-button border border-transparent rounded-lg hover:bg-button-dark focus:outline-none focus:shadow-outline"
-              >Download</a
-            >
-            <a href=""></a>
-          </div>
-          <div class="flex flex-row gap-2">
-            <label for="cor" class="text-[10px] lg:text-xl"
-              >Certificate of Registration:</label
-            >
-            <a
-            name="cor"
-              href=""
-              download
-              class="inline-block px-6 py-1 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-button border border-transparent rounded-lg hover:bg-button-dark focus:outline-none focus:shadow-outline"
-              >Download</a
-            >
-            <a href=""></a>
-          </div>
-          <div class="flex flex-row gap-2">
-            <label for="pdos" class="text-[10px] lg:text-xl"
-              >Certificate of Participation (PDOS):</label
-            >
-            <a
-              href=""
-              name="pdos"
-              download
-              class="inline-block px-6 py-1 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-button border border-transparent rounded-lg hover:bg-button-dark focus:outline-none focus:shadow-outline"
-              >Download</a
-            >
-            <a href=""></a>
-          </div>
-          <div class="flex flex-row gap-2">
-            <label for="asit" class="text-[10px] lg:text-xl"
-              >Application for Supervised Industrial Training:</label
-            >
-            <a
-              href=""
-              name="asit"
-              download
-              class="inline-block px-6 py-1 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-button border border-transparent rounded-lg hover:bg-button-dark focus:outline-none focus:shadow-outline"
-              >Download</a
-            >
-            <a href=""></a>
-          </div>
-          <div class="flex flex-row gap-2">
-            <label for="ojtpi" class="text-[10px] lg:text-xl"
-              >On - the - Job Training Program and Information Sheet:</label
-            >
-            <a
-            name="ojtpi"
-              href=""
-              download
-              class="inline-block px-6 py-1 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-button border border-transparent rounded-lg hover:bg-button-dark focus:outline-none focus:shadow-outline"
-              >Download</a
-            >
-            <a href=""></a>
-          </div>
-          <div class="flex flex-row gap-2">
-            <label for="wpf" class="text-[10px] lg:text-xl"
-              >Waiver and Permission Form (Notarized):</label
-            >
-            <a
-            name="wpf"
-              href=""
-              download
-              class="inline-block px-6 py-1 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-button border border-transparent rounded-lg hover:bg-button-dark focus:outline-none focus:shadow-outline"
-              >Download</a
-            >
-            <a href=""></a>
-          </div>
-          <div class="flex flex-row gap-2">
-            <label for="suc" class="text-[10px] lg:text-xl"
-              >Student/University Contract (Notarized):</label
-            >
-            <a
-            name="suc"
-              href=""
-              download
-              class="inline-block px-6 py-1 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-button border border-transparent rounded-lg hover:bg-button-dark focus:outline-none focus:shadow-outline"
-              >Download</a
-            >
-            <a href=""></a>
-          </div>
-          <div class="flex flex-row gap-2">
-            <label for="per" class="text-[10px] lg:text-xl"
-              >Physiological Evaluation Result:</label
-            >
-            <a
-            name="per"
-              href=""
-              download
-              class="inline-block px-6 py-1 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-button border border-transparent rounded-lg hover:bg-button-dark focus:outline-none focus:shadow-outline"
-              >Download</a
-            >
-            <a href=""></a>
-          </div>
-          <div class="flex flex-row gap-2">
-            <label for="mr" class="text-[10px] lg:text-xl">Medical Result:</label>
-            <a
-            name="mr"
-              href=""
-              download
-              class="inline-block px-6 py-1 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-button border border-transparent rounded-lg hover:bg-button-dark focus:outline-none focus:shadow-outline"
-              >Download</a
-            >
-            <a href=""></a>
-          </div> -->
         </div>
       </div>
     </main>
+        <?php if ($isProfileIncomplete): ?>
+    <div class="overlay">
+      <div class="overlay-content">
+        <h2 class="text-2xl font-bold mb-4">Profile Incomplete</h2>
+        <p class="mb-4">Please complete your profile to access all features.</p>
+        <a href="edit-prof.php" class="px-4 py-2 bg-blue-500 text-white rounded">Set Up Profile</a>
+      </div>
+    </div>
+    <?php endif; ?>
     <script>
       const sidebar = document.getElementById("default-sidebar");
       const sidebarToggle = document.getElementById("sidebarToggle");

@@ -63,7 +63,7 @@ function handleFileUpload($file, $uploadDir) {
 
 // Handle photo upload
 if (!empty($_FILES['photo']['name'])) {
-    $uploadDir = 'uploads/';
+    $uploadDir = 'uploads/images/';
     $targetDir = $uploadDir;
     $targetFile = $targetDir . basename($_FILES['photo']['name']);
     $uploadOk = 1;
@@ -145,7 +145,7 @@ $row = $result->fetch_assoc();
 if ($row['count'] == 0) {
     $insertStudentQuery = "INSERT INTO student (userId, studentNo, section, dob, course, phoneNo, experience, aboutMe, photo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
     $stmt = $conn->prepare($insertStudentQuery);
-    $stmt->bind_param('isssssss', $userId, $studentNo, $section, $dob, $course, $phoneNo, $experience, $aboutMe, $photo);
+    $stmt->bind_param('issssssss', $userId, $studentNo, $section, $dob, $course, $phoneNo, $experience, $aboutMe, $photo);
     $stmt->execute();
 } else {
     $updateStudentQuery = "UPDATE student SET studentNo = COALESCE(NULLIF(?, ''), studentNo), section = COALESCE(NULLIF(?, ''), section), dob = COALESCE(NULLIF(?, ''), dob), course = COALESCE(NULLIF(?, ''), course), phoneNo = COALESCE(NULLIF(?, ''), phoneNo), experience = COALESCE(NULLIF(?, ''), experience), aboutMe = COALESCE(NULLIF(?, ''), aboutMe), photo = COALESCE(NULLIF(?, ''), photo) WHERE userId = ?";
@@ -173,16 +173,13 @@ if ($row['count'] == 0) {
     $stmt->bind_param('ssssi', $street, $barangay, $city, $province, $userId);
     $stmt->execute();
 }
+    $deleteSkillsQuery = "DELETE FROM skillset WHERE UserId = ?";
+    $stmt = $conn->prepare($deleteSkillsQuery);
+    $stmt->bind_param('i', $user);
+    $stmt->execute();
 
 if (!empty($skills)) {
     $skillsArray = array_map('trim', explode('-=-', $skills)); // Ensure correct splitting
-
-    // Remove existing skills to prevent duplication
-    $deleteSkillsQuery = "DELETE FROM skills WHERE userId = ?";
-    $stmt = $conn->prepare($deleteSkillsQuery);
-    $stmt->bind_param('i', $userId);
-    $stmt->execute();
-
     foreach ($skillsArray as $skill) {
         $skill = trim($skill);
 
@@ -195,20 +192,56 @@ if (!empty($skills)) {
         
 
         if ($result->num_rows === 0) {
-            // Insert new skill
-            $insertSkillQuery = "INSERT INTO skills (skillName, UserId, StudentId) VALUES (?, ?, ?)";
+            $insertSkillQuery = "INSERT INTO skills (skillName) VALUES (?)";
             $stmt = $conn->prepare($insertSkillQuery);
-            $stmt->bind_param('sii', $skill, $userId, $studentId);
+            $stmt->bind_param('s', $skill);
             $stmt->execute();
+            $skillId = $stmt->insert_id;
+        } else {
+            $row = $result->fetch_assoc();
+            $skillId = $row['skillId'];
+
         }
+            $checkSkill = "SELECT COUNT(*) as count FROM skillset WHERE skillId = ? AND UserId = ?";
+            $stmt = $conn->prepare($checkSkill);
+            $stmt->bind_param('ii', $skillId, $user['UserId']);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $row = $result->fetch_assoc();
+            if ($row['count'] == 0) {
+                $insertSkillQuery = "INSERT INTO skillset (skillId, UserId) VALUES (?, ?)";
+                $stmt = $conn->prepare($insertSkillQuery);
+                $stmt->bind_param('ii', $skillId, $userId);
+                $stmt->execute();
+            }
+
+
+
+            // $insertSkillQuery = "INSERT INTO skillset (skillId, StudentId) VALUES (?, ?)";
+            // $stmt = $conn->prepare($insertSkillQuery);
+            // $stmt->bind_param('ii', $skillId, $studentId);
+            // $stmt->execute();
+    }
+}
+
+$newPassword = $_POST['newPassword'] ?? '';
+$confirmPassword = $_POST['confirmPassword'] ?? '';
+
+if (!empty($newPassword) && !empty($confirmPassword)) {
+    if ($newPassword === $confirmPassword) {
+        $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+        $updatePasswordQuery = "UPDATE user SET password = ? WHERE userId = ?";
+        $stmt = $conn->prepare($updatePasswordQuery);
+        $stmt->bind_param('si', $hashedPassword, $userId);
+        $stmt->execute();
+    } else {
+        echo "Passwords do not match.";
     }
 }
 
 
-
-
 // Handle file uploads for other documents
-$uploadDir = "uploads/"; 
+$uploadDir = "uploads/documents/"; 
 $files = ['resume', 'cor', 'pdos', 'ojtpi', 'asit', 'wpf', 'suc', 'per', 'mr'];
 $filePaths = [];
 
