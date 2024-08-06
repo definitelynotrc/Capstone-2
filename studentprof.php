@@ -362,13 +362,13 @@ $conn->close();
             />
             <path
               d="M75.2452 40C103.539 52.5091 157.451 70.241 146.748 41.096"
-              stroke="black"
+              stroke="black", 
               stroke-width="3"
             />
           </svg>
 
           <li>
-            <a href="#" class="flex items-center p-2">
+            <a href="studentjobs.php" class="flex items-center p-2">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="24"

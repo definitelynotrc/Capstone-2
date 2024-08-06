@@ -6,8 +6,26 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-$user_id = $_SESSION['user_id'];
+$userId = $_SESSION['user_id'];
 $CompanyId = $_SESSION['CompanyId'];
+
+$skills = $_POST['skills'] ?? '';
+$position = $_POST['position'] ?? '';
+$description = $_POST['description'] ?? '';
+$openings = $_POST['NoOfOpenings'] ?? '';
+$allowance = $_POST['allowance'] ?? '';
+$startDate = $_POST['startDate'] ?? '';
+$endDate = $_POST['endDate'] ?? '';
+$street = $_POST['Street'] ?? '';
+$barangay = $_POST['Barangay'] ?? '';
+$city = $_POST['City'] ?? '';
+$province = $_POST['Province'] ?? '';
+
+
+
+
+
+
 
 $stmt = $conn->prepare("SELECT * FROM company WHERE CompanyId = ?");
 $stmt->bind_param("i", $CompanyId);
@@ -16,17 +34,31 @@ $result = $stmt->get_result();
 $company = $result->fetch_assoc();
 $stmt->close();
 
-
-
-$stmt = $conn->prepare("SELECT skillId FROM skillSet WHERE UserId = ?");
-$stmt->bind_param("i", $user['UserId']);
+$stmt = $conn->prepare("INSERT INTO location (Street, Barangay, City, Province, UserId) VALUES (?, ?, ?, ?, ?)");
+$stmt->bind_param("ssssi", $street, $barangay, $city, $province, $userId);
 $stmt->execute();
-$result = $stmt->get_result();
-$skillIds = [];
-while ($row = $result->fetch_assoc()) {
-    $skillIds[] = $row['skillId'];
-}
+$locationId = $conn->insert_id; 
 $stmt->close();
+
+if ($locationId == 0) {
+    echo "Failed to retrieve location ID.";
+    exit();
+}
+
+
+$stmt = $conn->prepare("INSERT INTO job (Position, Description, NoOfOpenings, CompanyId, monthlyAllowance, startDate, endDate, LocationId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+$stmt->bind_param("ssiisssi", $position, $description, $openings, $CompanyId, $allowance, $startDate, $endDate, $locationId);
+$stmt->execute();
+$stmt->close();
+
+
+
+
+
+  $deleteSkillsQuery = "DELETE FROM skillset WHERE UserId = ?";
+    $stmt = $conn->prepare($deleteSkillsQuery);
+    $stmt->bind_param('i', $user);
+    $stmt->execute();
 
 
 if (!empty($skills)) {
@@ -68,8 +100,34 @@ if (!empty($skills)) {
 
 
 
+            // $insertSkillQuery = "INSERT INTO skillset (skillId, StudentId) VALUES (?, ?)";
+            // $stmt = $conn->prepare($insertSkillQuery);
+            // $stmt->bind_param('ii', $skillId, $studentId);
+            // $stmt->execute();
     }
 }
+
+$stmt = $conn->prepare("SELECT skillName FROM skills");
+$stmt->execute();
+$result = $stmt->get_result();
+$skillList=  [] ; 
+foreach ($result as $row) {
+    $skillList[] = $row['skillName'];
+} 
+ $stmt->close();
+
+$stmt = $conn->prepare("SELECT skillId FROM skillSet WHERE UserId = ?");
+$stmt->bind_param("i", $user['UserId']);
+$stmt->execute();
+$result = $stmt->get_result();
+$skillIds = [];
+while ($row = $result->fetch_assoc()) {
+    $skillIds[] = $row['skillId'];
+}
+$stmt->close();
+
+
+
 $skills = [];
 foreach ($skillIds as $skillId) {
     $stmt = $conn->prepare("SELECT skillName FROM skills WHERE skillId = ?");
@@ -99,7 +157,7 @@ $skillsString = implode(',', $skills);
       href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap"
       rel="stylesheet"
     />
-    <link rel="icon" href="./img/Group 236.svg" type="image/x-icon" />
+    <link rel="icon" href="../img/Group 236.svg" type="image/x-icon" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -339,7 +397,7 @@ $skillsString = implode(',', $skills);
             <img
              src="<?php echo isset($company['photo']) && !empty($company['photo']) ? $company['photo'] : $defaultPhoto; ?>"
               alt="Profile"
-              class="w-full h-full object-cover"
+              class="w-full h-full object-cover rounded-full"
             />
           </div>
           <svg
@@ -687,7 +745,7 @@ $skillsString = implode(',', $skills);
             </div>
           </div>
       <div class="dropdown">
-                    <label for="skills" class="font-medium text-sm">Skills</label>
+          <label for="skills" class="font-medium text-sm">Skills</label>
                     <div class="input-container" id="input-container" onclick="focusInput()">
                             <input name="skills" type="text" id="skills" class="skills-input" oninput="filterFunction()" onfocus="showDropdown()" onblur="hideDropdown()" autocomplete="off">
                     </div>
@@ -721,10 +779,10 @@ $skillsString = implode(',', $skills);
       </div>
     </main>
     <script>
-// Initialize skills from PHP
+
 const skills = <?php echo json_encode($skills); ?>;
 const skillList = <?php echo json_encode($skillList); ?>;
-// Initialize selectedSkills from the backend skills, ensuring no duplicates
+
 let selectedSkills = skills.slice(); // Start with existing skills
 
 const dropdownContent = document.getElementById("dropdown-content");

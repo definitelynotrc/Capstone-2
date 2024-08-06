@@ -25,7 +25,7 @@ $result = $stmt->get_result();
 $student = $result->fetch_assoc();
 $stmt->close();
 
-$defaultPhoto = './img/default.jpg';
+$defaultPhoto = './uploads/images/default.jpg';
 
 
 
@@ -407,7 +407,7 @@ $skillsString = implode(',', $skills);
           </svg>
 
           <li>
-            <a href="#" class="flex items-center p-2">
+            <a href="studentjobs.php" class="flex items-center p-2">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="24"
@@ -492,7 +492,7 @@ $skillsString = implode(',', $skills);
     <div class="flex flex-col lg:flex-row mt-5 items-center w-full gap-5">
         <div class="flex flex-col items-center gap-5 lg:flex-row w-full">
             <div>
-          <img src="./uploads/<?php echo isset($student['photo']) && !empty($student['photo']) ? $student['photo'] : $defaultPhoto; ?>" alt="User Photo" class="w-32 h-32 rounded-full object-cover">
+          <img src="./uploads/images/<?php echo isset($student['photo']) && !empty($student['photo']) ? $student['photo'] : $defaultPhoto; ?>" alt="User Photo" class="w-32 h-32 rounded-full object-cover">
      
 
             </div>

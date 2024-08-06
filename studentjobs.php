@@ -3,9 +3,10 @@ include 'db.php';
 session_start();
 $userId = $_SESSION['user_id'];
 $companyId = $_SESSION['CompanyId'];
+$studentId = $_SESSION['StudentId']; 
 
-echo $companyId;
-// Fetch company details
+
+
 $stmt = $conn->prepare("SELECT * FROM Company WHERE CompanyId = ?");
 $stmt->bind_param("i", $companyId);
 $stmt->execute();
@@ -13,13 +14,15 @@ $result = $stmt->get_result();
 $company = $result->fetch_assoc();
 $stmt->close();
 
-// Fetch location details
-$stmt = $conn->prepare("SELECT * FROM location WHERE LocationId = ?");
-$stmt->bind_param("i", $company['LocationId']);
+
+$defaultPhoto = 'default.jpg';
+$stmt = $conn->prepare("SELECT photo FROM student WHERE UserId = ? ");
+$stmt->bind_param("i", $studentId);
 $stmt->execute();
-$result = $stmt->get_result();
-$location = $result->fetch_assoc();
+$studentResult = $stmt  ->get_result();
+$student = $studentResult-> fetch_assoc();
 $stmt->close();
+
 
 // Fetch all job listings for the company
 $stmt = $conn->prepare("SELECT * FROM job WHERE CompanyId = ?");
@@ -28,18 +31,21 @@ $stmt->execute();
 $jobsResult = $stmt->get_result(); // Renamed to $jobsResult to avoid confusion
 $stmt->close();
 
-if ($jobsResult && $jobsResult->num_rows > 0) {
-    // Print out the fetched job data for debugging
-    while ($job = $jobsResult->fetch_assoc()) {
-        echo '<pre>';
-        print_r($job); // Debugging output
-        echo '</pre>';
-    }
-} else {
-    echo "<p>No job listings found.</p>";
-}
+$jobsWithLocations = [];
 
-// Fetch skills for the user
+while ($job = $jobsResult->fetch_assoc()) {
+    // Fetch location for each job
+    $stmt = $conn->prepare("SELECT * FROM location WHERE LocationId = ?");
+    $stmt->bind_param("i", $job['LocationId']);
+    $stmt->execute();
+    $locationResult = $stmt->get_result();
+    $location = $locationResult->fetch_assoc();
+    $stmt->close();
+
+    // Combine job and location data
+    $job['location'] = $location;
+    $jobsWithLocations[] = $job;
+}
 $sql = "SELECT skillId FROM skillset WHERE UserId = ?";
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $userId);
@@ -68,7 +74,9 @@ $companyName = isset($company['CompanyName']) ? $company['CompanyName'] : '';
 $companyLogo = isset($company['CompanyLogo']) ? $company['CompanyLogo'] : '';
 $website = isset($company['Website']) ? $company['Website'] : '';
 $description = isset($company['Description']) ? $company['Description'] : '';
-$skillsList = !empty($skills) ? implode(', ', $skills) : ''; // Convert skills array to a comma-separated string
+$skillsList = !empty($skills) ? implode(', ', $skills) : ''; 
+$studentphoto = isset($student['photo']) ? $student['photo'] : '';
+
 ?>
 
 
@@ -85,7 +93,9 @@ $skillsList = !empty($skills) ? implode(', ', $skills) : ''; // Convert skills a
       href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&display=swap"
       rel="stylesheet"
     />
-c
+
+
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -243,7 +253,7 @@ c
         >
           <div class="w-[25px] h-[24px] rounded-full">
             <img
-              src="./img/Group 136.png"
+              src="./uploads/images/<?php echo isset($studentphoto['photo']) && !empty($studentphoto['photo']) ? $studentphoto['photo'] : $defaultPhoto; ?>"
               alt="Profile"
               class="w-full h-full object-cover"
             />
@@ -267,17 +277,17 @@ c
             class="custom-hidden custom-absolute z-10 top-8 right-0 mt-2 w-48 bg-white border custom-rounded-md custom-shadow-lg"
           >
             <a
-              href="#"
+              href="studentprof.php"
               class="custom-block px-4 py-2 text-gray-700 hover:bg-gray-100"
               >Profile</a
             >
             <a
-              href="#"
+              href="edit-prof.php"
               class="custom-block px-4 py-2 text-gray-700 hover:bg-gray-100"
               >Edit Profile</a
             >
             <a
-              href="#"
+              href=""
               class="custom-block px-4 py-2 text-gray-700 hover:bg-gray-100"
               >About Us</a
             >
@@ -287,7 +297,7 @@ c
               >Contact Us</a
             >
             <a
-              href="#"
+              href="logout.php"
               class="custom-block px-4 py-2 text-gray-700 hover:bg-gray-100"
               >Logout</a
             >
@@ -439,41 +449,24 @@ c
                                         <h1 name="Position" class="text-lg font-semibold lg:text-xl"><?php echo htmlspecialchars($job['Position']); ?></h1>
                                     </div>
                                     <div class="w-[20%] flex items-center">
-                                        <img src="/uploads/company_logos/<?php echo htmlspecialchars($company['CompanyLogo']); ?>" alt="<?php echo htmlspecialchars($company['CompanyName']); ?>" class="w-[40px] h-[40px] rounded-full"/>
+                                        <img src="<?php echo htmlspecialchars($company['CompanyLogo']); ?>" alt="<?php echo htmlspecialchars($company['CompanyName']); ?>" class="w-[40px] h-[40px] rounded-full"/>
                                     </div>
                                 </div>
                                 <div class="flex flex-row justify-between">
                                     <div class="">
                                         <ul class="flex flex-col gap-1">
                                             <li class="flex flex-row items-center gap-1">
-                                                <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <g clip-path="url(#clip0_113_107)">
-                                                        <path d="M3 11V2C3 1.73478 3.10536 1.48043 3.29289 1.29289C3.48043 1.10536 3.73478 1 4 1H8C8.26522 1 8.51957 1.10536 8.70711 1.29289C8.89464 1.48043 9 1.73478 9 2V11H3Z" stroke="black" stroke-width="0.666667" stroke-linecap="round" stroke-linejoin="round"/>
-                                                        <path d="M5 6.5H7" stroke="black" stroke-width="0.666667" stroke-linecap="round" stroke-linejoin="round"/>
-                                                        <path d="M5 8H7" stroke="black" stroke-width="0.666667" stroke-linecap="round" stroke-linejoin="round"/>
-                                                    </g>
-                                                    <defs>
-                                                        <clipPath id="clip0_113_107">
-                                                            <rect width="12" height="12" fill="white"/>
-                                                        </clipPath>
-                                                    </defs>
-                                                </svg>
-                                                <span class="text-xs"><?php echo htmlspecialchars($job['JobType']); ?></span>
+                                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-building-2"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></svg>
+                                                <span class="text-xs"><?php echo htmlspecialchars($company['CompanyName']); ?></span>
                                             </li>
                                             <li class="flex flex-row items-center gap-1">
-                                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                                    <g clip-path="url(#clip0_113_108)">
-                                                        <path d="M11.6666 4.33333L9.66663 6.33333L7.66663 4.33333L6.66663 5.33333L8.66663 7.33333L10.6666 5.33333L11.6666 4.33333Z" stroke="black" stroke-width="0.666667" stroke-linecap="round" stroke-linejoin="round"/>
-                                                        <path d="M5.66663 9.33333L7.66663 7.33333L9.66663 9.33333L10.6666 8.33333L8.66663 6.33333L6.66663 8.33333L5.66663 9.33333Z" stroke="black" stroke-width="0.666667" stroke-linecap="round" stroke-linejoin="round"/>
-                                                    </g>
-                                                    <defs>
-                                                        <clipPath id="clip0_113_108">
-                                                            <rect width="14" height="14" fill="white"/>
-                                                        </clipPath>
-                                                    </defs>
-                                                </svg>
-                                                <span class="text-xs"><?php echo htmlspecialchars($job['Salary']); ?></span>
+                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pinned"><path d="M18 8c0 3.613-3.869 7.429-5.393 8.795a1 1 0 0 1-1.214 0C9.87 15.429 6 11.613 6 8a6 6 0 0 1 12 0"/><circle cx="12" cy="8" r="2"/><path d="M8.714 14h-3.71a1 1 0 0 0-.948.683l-2.004 6A1 1 0 0 0 3 22h18a1 1 0 0 0 .948-1.316l-2-6a1 1 0 0 0-.949-.684h-3.712"/></svg>
+                                       <span class="text-xs"><?php echo htmlspecialchars($job['City']); ?></span>
                                             </li>
+                                                <li class="flex flex-row items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users-round"><path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/></svg>
+                                         <span class="text-xs"><?php echo htmlspecialchars($job['NoOfOpenings']); ?></span>             
+                              </li>
                                         </ul>
                                     </div>
                                     <div class="">

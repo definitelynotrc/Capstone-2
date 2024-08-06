@@ -7,7 +7,6 @@ include 'db.php';
 // Fetch user data from the form
 $userId = $_SESSION['user_id'];
 $studentId = $_SESSION['StudentId']; 
-
 $firstName = $_POST['firstName'] ?? '';
 $middleName = $_POST['middleName'] ?? '';
 $lastName = $_POST['lastName'] ?? '';
@@ -163,9 +162,9 @@ $result = $stmt->get_result();
 $row = $result->fetch_assoc();
 
 if ($row['count'] == 0) {
-    $insertAddressQuery = "INSERT INTO location (userId, Street, Barangay, City, Province, StudentId) VALUES (?, ?, ?, ?, ?, ?)";
+    $insertAddressQuery = "INSERT INTO location (userId, Street, Barangay, City, Province) VALUES (?, ?, ?, ?, ?)";
     $stmt = $conn->prepare($insertAddressQuery);
-    $stmt->bind_param('issssi', $userId, $street, $barangay, $city, $province, $studentId);
+    $stmt->bind_param('issss', $userId, $street, $barangay, $city, $province);
     $stmt->execute();
 } else {
     $updateAddressQuery = "UPDATE location SET Street = COALESCE(NULLIF(?, ''), Street), Barangay = COALESCE(NULLIF(?, ''), Barangay), City = COALESCE(NULLIF(?, ''), City), Province = COALESCE(NULLIF(?, ''), Province) WHERE userId = ?";

@@ -57,7 +57,7 @@ foreach ($files as $file) {
 foreach ($filePaths as $type => $path) {
     // Extract the filename from the full path
     $filename = basename($path);
-    $sql = "INSERT INTO documents (userId, fileType, filename, StudentId) VALUES ('$userId', '$type', '$filename', '$studentId')";
+    $sql = "INSERT INTO documents (userId, fileType, filename) VALUES ('$userId', '$type', '$filename')";
     if ($conn->query($sql) === TRUE) {
         echo "File $type uploaded and saved successfully.";
     } else {
